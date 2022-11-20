@@ -1,6 +1,6 @@
-﻿using SystemModeling1.Devices.Enums;
+﻿using SystemModeling2.Devices.Enums;
 
-namespace SystemModeling1.Devices;
+namespace SystemModeling2.Devices;
 
 public sealed class ProcessDevice : Device
 {
@@ -12,7 +12,7 @@ public sealed class ProcessDevice : Device
 
 	public int Rejected { get; private set; }
 
-	//private double meanQueue;
+	public double MeanInQueueTime { get; private set; }
 
 	#endregion
 
@@ -21,6 +21,7 @@ public sealed class ProcessDevice : Device
 		: base(name, distributionFunc, nextPriorityTuples)
 	{
 		MaxQueue = maxQueue;
+		NextTime = double.MaxValue;
 	}
 
 	public override void InAction(double currentTime)
@@ -34,39 +35,37 @@ public sealed class ProcessDevice : Device
 		{
 			if (InQueue < MaxQueue || MaxQueue == -1)
 			{
-				ColoredConsole.WriteLine($"In Queue {this}", ConsoleColor.DarkYellow);
 				InQueue++;
+				ColoredConsole.WriteLine($"In Queue {this}", ConsoleColor.DarkYellow);
 			}
 			else
 			{
-				ColoredConsole.WriteLine($"Rejected {this}", ConsoleColor.DarkRed);
 				Rejected++;
+				ColoredConsole.WriteLine($"Rejected {this}", ConsoleColor.DarkRed);
 			}
 		}
 	}
 
 	public override void OutAction(double currentTime)
 	{
-		if (State != DeviceState.Free)
-		{
-			Finished++;
-			ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
+		Finished++;
+		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
 
-			var nextDevice = GetNextDevice();
-			if (nextDevice != null)
-			{
-				ColoredConsole.WriteLine($"Pass from {Name} to {nextDevice}", ConsoleColor.DarkGray);
-				nextDevice.InAction(currentTime);
-			}
+		var nextDevice = GetNextDevice();
+		if (nextDevice != null)
+		{
+			ColoredConsole.WriteLine($"Pass from {Name} to {nextDevice}", ConsoleColor.DarkGray);
+			nextDevice.InAction(currentTime);
 		}
 		State = DeviceState.Free;
 		NextTime = double.MaxValue;
 
 		if (InQueue <= 0) return;
 		NextTime = currentTime + DistributionFunc.Invoke();
+		MeanInQueueTime += InQueue * (NextTime - currentTime);
 		InQueue--;
 	}
 
-	public override string ToString() => $"{Name}: State - {State}, Next Time - {NextTime}, " +
+	public override string ToString() => $"{Name}: Next Time - {NextTime}, Mean in Queue Time - {MeanInQueueTime} " +
 	                                     $"Finished - {Finished}, In Queue - {InQueue}";
 }

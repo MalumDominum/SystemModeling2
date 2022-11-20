@@ -1,4 +1,4 @@
-﻿namespace SystemModeling1.Devices.Enums;
+﻿namespace SystemModeling2.Devices.Enums;
 
 public enum DeviceState
 {

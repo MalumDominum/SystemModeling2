@@ -1,6 +1,6 @@
-﻿using SystemModeling1.Devices.Enums;
+﻿using SystemModeling2.Devices.Enums;
 
-namespace SystemModeling1.Devices;
+namespace SystemModeling2.Devices;
 
 public abstract class Device
 {
@@ -28,8 +28,8 @@ public abstract class Device
         DistributionFunc = distributionFunc;
         NextPriorityTuples = nextPriorityTuples;
 
-        State = DeviceState.Free;
         NextTime = distributionFunc.Invoke();
+		State = DeviceState.Free;
     }
 
 	#endregion

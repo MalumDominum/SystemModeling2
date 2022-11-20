@@ -1,6 +1,6 @@
-﻿using SystemModeling1.Devices;
+﻿using SystemModeling2.Devices;
 
-namespace SystemModeling1.Model;
+namespace SystemModeling2.Model;
 
 public class Model
 {
@@ -48,5 +48,9 @@ public class Model
 		foreach (var device in processDevices)
 			Console.WriteLine("Device " + device.Name + " Rejected: " + device.Rejected);
 		Console.WriteLine("Sum of Rejected: " + processDevices.Sum(d => d.Rejected) + "\n");
-    }
+
+		foreach (var device in processDevices)
+			Console.WriteLine("Device " + device.Name + " MeanInQueueTime: " + device.MeanInQueueTime);
+		Console.WriteLine("Mean of MeanInQueueTime: " + processDevices.Select(d => d.MeanInQueueTime).Average() + "\n");
+	}
 }

@@ -1,4 +1,4 @@
-﻿namespace SystemModeling1;
+﻿namespace SystemModeling2;
 
 public class RandomExtended
 {

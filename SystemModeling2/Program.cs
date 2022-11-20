@@ -1,11 +1,16 @@
-﻿using SystemModeling1;
-using SystemModeling1.Devices;
-using SystemModeling1.Model;
+﻿using SystemModeling2.Devices;
+using SystemModeling2.Model;
+using RE = SystemModeling2.RandomExtended;
 
-var d1 = new CreateDevice("Create 1", RandomExtended.GetGaussian(3, 2));
-var d2 = new ProcessDevice("Process 1", RandomExtended.GetExponential(2), 3);
-var d3 = new ProcessDevice("Process 2", RandomExtended.GetUniform(1, 5));
-var d4 = new ProcessDevice("Process 3", RandomExtended.GetGaussian(4, 2));
+var d1 = new CreateDevice("Create 1", RE.GetUniform(1.5, 4));
+var d2 = new ProcessDevice("Process 1", RE.GetExponential(2), 3);
+var d3 = new ProcessDevice("Process 2", RE.GetUniform(1.5, 4));
+var d4 = new ProcessDevice("Process 3", RE.GetGaussian(3, 5), 2);
+
+//var d1 = new CreateDevice("Create 1", () => 1);
+//var d2 = new ProcessDevice("Process 1", () => 1, 3);
+//var d3 = new ProcessDevice("Process 2", () => 1);
+//var d4 = new ProcessDevice("Process 3", () => 1, 2);
 
 d1.NextPriorityTuples = new List<(Device, int)> { (d2, 1) };
 d2.NextPriorityTuples = new List<(Device, int)> { (d3, 1) };
