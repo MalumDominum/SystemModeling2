@@ -34,6 +34,7 @@ public class Model
 	    var createDevices = GetSpecificDevices<CreateDevice>(devices);
 	    var processDevices = GetSpecificDevices<ProcessDevice>(devices);
 
+		// TODO Make table output
 		Console.WriteLine("\n");
 		foreach (var device in createDevices)
 		    Console.WriteLine("Device " + device.Name + " Created: " + device.Finished);

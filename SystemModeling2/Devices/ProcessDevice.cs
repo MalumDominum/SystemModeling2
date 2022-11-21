@@ -9,7 +9,7 @@ public sealed class ProcessDevice : Device
 	#region Properties
 
 	public List<ProcessDevice>? MigrateOptions { get; set; }
-	
+
 	public int MaxQueue { get; init; }
 
 	public int InQueue { get; private set; }
@@ -27,8 +27,7 @@ public sealed class ProcessDevice : Device
 	#endregion
 
 	public ProcessDevice(string name, Func<double> distributionFunc,
-		int maxQueue = -1, List<(Device, int)>? nextPriorityTuples = null)
-		: base(name, distributionFunc, nextPriorityTuples)
+		int maxQueue = -1, int processorsCount = 1) : base(name, distributionFunc)
 	{
 		MaxQueue = maxQueue;
 		NextTime = double.MaxValue;

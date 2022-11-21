@@ -22,11 +22,10 @@ public abstract class Device
 
 	#region Constructor
 
-	protected Device(string name, Func<double> distributionFunc, List<(Device, int)>? nextPriorityTuples = null)
+	protected Device(string name, Func<double> distributionFunc)
     {
         Name = name;
         DistributionFunc = distributionFunc;
-        NextPriorityTuples = nextPriorityTuples;
 
         NextTime = distributionFunc.Invoke();
 		State = DeviceState.Free;

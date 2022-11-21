@@ -2,6 +2,8 @@
 
 public class CreateDevice : Device
 {
+	public CreateDevice(string name, Func<double> distributionFunc) : base(name, distributionFunc) { }
+
 	public override void InAction(double currentTime) { }
 
 	public override void OutAction(double currentTime)
@@ -14,7 +16,4 @@ public class CreateDevice : Device
 		Console.WriteLine($"Created to {nextDevice.Name} from {this}");
 		nextDevice.InAction(currentTime);
 	}
-
-	public CreateDevice(string name, Func<double> distributionFunc, List<(Device, int)>? nextPriorityTuples = null)
-		: base(name, distributionFunc, nextPriorityTuples) { }
 }
