@@ -2,10 +2,12 @@
 
 public class CreateDevice : Device
 {
-	public CreateDevice(string name, Func<double> distributionFunc, int processorsCount = 1)
-		: base(name, distributionFunc, processorsCount)
+	public CreateDevice(string name, Func<double> distributionFunc, int processorsCount = 1,
+		StartedConditions? conditions = null) : base(name, distributionFunc, processorsCount)
 	{
-		for (var i = 0; i < NextTimes.Length; i++)
+		if (conditions != null)
+			Array.Fill(NextTimes, conditions.FirstInTime ?? distributionFunc.Invoke());
+		else for (var i = 0; i < NextTimes.Length; i++)
 			NextTimes[i] = distributionFunc.Invoke();
 	}
 

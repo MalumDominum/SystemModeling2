@@ -36,11 +36,12 @@ public class Model
 
 		// TODO Make table output
 		Console.WriteLine("\n");
+		var createdSum = createDevices.Sum(d => d.Finished);
 		foreach (var device in createDevices)
 		    Console.WriteLine("Device " + device.Name + " Created: " + device.Finished);
-	    Console.WriteLine("Sum of Created: " + createDevices.Sum(d => d.Finished) + "\n");
-
-	    foreach (var device in processDevices)
+	    Console.WriteLine("Sum of Created: " + createdSum + "\n");
+		
+		foreach (var device in processDevices)
 		    Console.WriteLine("Device " + device.Name + " Processed: " + 
 		                      device.FinishedBy.Select(t => t.ToString()).Aggregate((a, t) => $"{a} {t}") +
 		                      ", Sum: " + device.Finished);
@@ -49,7 +50,8 @@ public class Model
 		var rejectedSum = processDevices.Sum(d => d.Rejected);
 		foreach (var device in processDevices)
 			Console.WriteLine("Device " + device.Name + " Rejected: " + device.Rejected);
-		Console.WriteLine("Sum of Rejected: " + rejectedSum + " / " + rejectedSum / createDevices.Sum(d => d.Finished) + "%\n");
+		Console.WriteLine("Sum of Rejected: " + rejectedSum + " / " +
+		                  Math.Round((double)rejectedSum / createdSum * 100, 2) + "%\n");
 
 		foreach (var device in processDevices)
 			Console.WriteLine("Device " + device.Name + " Migrated: " + device.Migrated);

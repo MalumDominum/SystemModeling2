@@ -30,8 +30,8 @@ public sealed class ProcessDevice : Device
 
 	#region Constructor
 
-	public ProcessDevice(string name, Func<double> distributionFunc,
-		int maxQueue = -1, int processorsCount = 1) : base(name, distributionFunc, processorsCount)
+	public ProcessDevice(string name, Func<double> distributionFunc, int maxQueue = -1,
+		int processorsCount = 1, StartedConditions? conditions = null) : base(name, distributionFunc, processorsCount)
 	{
 		MaxQueue = maxQueue;
 
@@ -39,6 +39,14 @@ public sealed class ProcessDevice : Device
 
 		States = new DeviceState[processorsCount];
 		Array.Fill(States, DeviceState.Free);
+
+		for (var i = 0; i < processorsCount && conditions?.BusyCount != null && i < conditions.BusyCount; i++)
+			States[i] = DeviceState.Busy;
+
+		if (conditions?.InQueue == null) return;
+		InQueue = (int)conditions.InQueue;
+		for (var i = 0; i < InQueue && i < processorsCount; i++)
+			NextTimes[i] = distributionFunc.Invoke();
 	}
 
 	#endregion

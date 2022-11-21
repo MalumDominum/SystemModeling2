@@ -15,7 +15,7 @@ var d22 = new ProcessDevice("Process 2 2", () => 1, 5);
 d1.NextPriorityTuples = new List<(Device, int)> { (d11, 2), (d21, 1) };
 d11.NextPriorityTuples = new List<(Device, int)> { (d12, 1) };
 d21.NextPriorityTuples = new List<(Device, int)> { (d22, 1) };
-var model = new Model { Devices = { d1, d11, d12, d21, d22 } };
+//var model = new Model { Devices = { d1, d11, d12, d21, d22 } };
 
 //var d1 = new CreateDevice("Create 1", () => 10);
 //var d2 = new ProcessDevice("Process 1", () => 1, 5);
@@ -27,13 +27,13 @@ var model = new Model { Devices = { d1, d11, d12, d21, d22 } };
 
 
 // CP-2 Task 2 with Banks
-var dc1 = new CreateDevice("Create 1", RE.GetExponential(0.3));
-var dp1 = new ProcessDevice("Process 1", RE.GetExponential(0.3), 6);
-var dp2 = new ProcessDevice("Process 2", RE.GetExponential(0.3), 6);
+var dc1 = new CreateDevice("Create 1", RE.GetExponential(0.3), conditions: new StartedConditions(null, null, 0.1));
+var dp1 = new ProcessDevice("Process 1", RE.GetGaussian(1, 0.3), 3, conditions: new StartedConditions(1, 2, null));
+var dp2 = new ProcessDevice("Process 2", RE.GetGaussian(1, 0.3), 3, conditions: new StartedConditions(1, 2, null));
 
 dc1.NextPriorityTuples = new List<(Device, int)> { (dp1, 2), (dp2, 1) };
 dp1.MigrateOptions = new List<ProcessDevice> { dp2 };
 dp2.MigrateOptions = new List<ProcessDevice> { dp1 };
+var model = new Model { Devices = { dc1, dp1, dp2 } };
 
-//var model = new Model { Devices = { dc1, dp1, dp2 } };
 model.Simulate(1000);
