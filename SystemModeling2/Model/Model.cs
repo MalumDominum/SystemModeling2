@@ -21,20 +21,18 @@ public class Model
 
 			foreach (var device in nextDevices)
                 device.OutAction(currentTime);
+
+			foreach (var device in Devices)
+				if (device is ProcessDevice processDevice)
+					processDevice.TryMigrate(currentTime);
 		}
 		ShowStatistics(Devices, modelingTime);
 	}
 
     public static void ShowStatistics(List<Device> devices, double modelingTime)
     {
-		var createDevices = new List<CreateDevice>();
-		foreach (var d in devices)
-			if (d is CreateDevice cd)
-				createDevices.Add(cd);
-		var processDevices = new List<ProcessDevice>();
-		foreach (var d in devices)
-			if (d is ProcessDevice pd)
-				processDevices.Add(pd);
+	    var createDevices = GetSpecificDevices<CreateDevice>(devices);
+	    var processDevices = GetSpecificDevices<ProcessDevice>(devices);
 
 		Console.WriteLine("\n");
 		foreach (var device in createDevices)
@@ -45,9 +43,14 @@ public class Model
 		    Console.WriteLine("Device " + device.Name + " Processed: " + device.Finished);
 		Console.WriteLine("Sum of Processed: " + processDevices.Sum(d => d.Finished) + "\n");
 
+		var rejectedSum = processDevices.Sum(d => d.Rejected);
 		foreach (var device in processDevices)
 			Console.WriteLine("Device " + device.Name + " Rejected: " + device.Rejected);
-		Console.WriteLine("Sum of Rejected: " + processDevices.Sum(d => d.Rejected) + "\n");
+		Console.WriteLine("Sum of Rejected: " + rejectedSum + " / " + rejectedSum / createDevices.Sum(d => d.Finished) + "%\n");
+
+		foreach (var device in processDevices)
+			Console.WriteLine("Device " + device.Name + " Migrated: " + device.Migrated);
+		Console.WriteLine("Sum of Migrated: " + processDevices.Sum(d => d.Migrated) + "\n");
 
 		foreach (var device in processDevices)
 			Console.WriteLine("Device " + device.Name + " MeanBusyTime: " + device.MeanBusyTime);
@@ -58,4 +61,13 @@ public class Model
 			Console.WriteLine("Device " + device.Name + " MeanInQueue: " + device.MeanInQueue / modelingTime);
 		Console.WriteLine("Mean of MeanInQueue: " + processDevices.Select(d => d.MeanInQueue / modelingTime).Average());
     }
+
+    private static List<T> GetSpecificDevices<T>(List<Device> devices) where T : Device
+    {
+	    var specificDevices = new List<T>();
+	    foreach (var d in devices)
+		    if (d is T cd)
+			    specificDevices.Add(cd);
+	    return specificDevices;
+	}
 }

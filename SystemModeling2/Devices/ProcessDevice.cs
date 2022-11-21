@@ -4,8 +4,12 @@ namespace SystemModeling2.Devices;
 
 public sealed class ProcessDevice : Device
 {
+	private const int MigrateDiff = 2;
+
 	#region Properties
 
+	public List<ProcessDevice>? MigrateOptions { get; set; }
+	
 	public int MaxQueue { get; init; }
 
 	public int InQueue { get; private set; }
@@ -15,6 +19,10 @@ public sealed class ProcessDevice : Device
 	public double MeanBusyTime { get; private set; }
 
 	public double MeanInQueue { get; private set; } // Must be divided by the modeling time
+
+	public int Migrated { get; private set; }
+
+	private double PreviousTime { get; set; }
 
 	#endregion
 
@@ -60,15 +68,29 @@ public sealed class ProcessDevice : Device
 			nextDevice.InAction(currentTime);
 		}
 		NextTime = double.MaxValue;
+		PreviousTime = currentTime;
 
 		if (InQueue > 0)
 		{
 			NextTime = currentTime + DistributionFunc.Invoke();
-			MeanBusyTime += (double)State * (NextTime - currentTime);
+			MeanBusyTime += NextTime - currentTime;
 			MeanInQueue += InQueue * (NextTime - currentTime);
 			InQueue--;
 		}
 		else State = DeviceState.Free;
+	}
+
+	public void TryMigrate(double currentTime)
+	{
+		var toDevice = MigrateOptions?.Where(d => InQueue - d.InQueue >= MigrateDiff)
+									  .FirstOrDefault(d => d.InQueue == MigrateOptions.Min(d => d.InQueue));
+		if (toDevice == null) return;
+		ColoredConsole.WriteLine($"Migrated to {toDevice.Name} (InQueue: {toDevice.InQueue}) " +
+		                         $"from {Name} (InQueue: {InQueue})", ConsoleColor.DarkBlue);
+		Migrated++;
+		InQueue--;
+		MeanInQueue -= currentTime - PreviousTime;
+		toDevice.InAction(currentTime);
 	}
 
 	public override string ToString() => $"{Name}: Next Time - {NextTime}, Finished - {Finished}, In Queue - {InQueue}";
