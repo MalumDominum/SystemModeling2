@@ -8,15 +8,15 @@ public abstract class Device
 
 	public string Name { get; set; }
 
-    public double[] NextTimes { get; protected set; }
+    public double[] NextTimes { get; }
 
 	public Func<double> DistributionFunc { get; init; }
 
     public List<(Device, int)>? NextPriorityTuples { get; set; }
 
-    public int Finished { get; set; }
+    public int Finished => FinishedBy.Sum();
 
-	private protected DeviceState State { get; set; }
+	public int[] FinishedBy { get; set; }
 
 	#endregion
 
@@ -26,8 +26,8 @@ public abstract class Device
     {
         Name = name;
         DistributionFunc = distributionFunc;
-		State = DeviceState.Free;
 		NextTimes = new double[processorsCount];
+		FinishedBy = new int[processorsCount];
     }
 
 	#endregion

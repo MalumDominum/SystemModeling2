@@ -13,8 +13,8 @@ public class CreateDevice : Device
 
 	public override void OutAction(double currentTime)
 	{
-		Finished++;
 		var processorIndex = Array.IndexOf(NextTimes, currentTime);
+		FinishedBy[processorIndex]++;
 		NextTimes[processorIndex] = currentTime + DistributionFunc.Invoke();
 
 		var nextDevice = GetNextDevice();

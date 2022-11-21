@@ -8,6 +8,8 @@ public sealed class ProcessDevice : Device
 
 	#region Properties
 
+	private DeviceState[] States { get; }
+
 	public List<ProcessDevice>? MigrateOptions { get; set; }
 
 	public int MaxQueue { get; init; }
@@ -26,19 +28,28 @@ public sealed class ProcessDevice : Device
 
 	#endregion
 
+	#region Constructor
+
 	public ProcessDevice(string name, Func<double> distributionFunc,
 		int maxQueue = -1, int processorsCount = 1) : base(name, distributionFunc, processorsCount)
 	{
 		MaxQueue = maxQueue;
+
 		Array.Fill(NextTimes, double.MaxValue);
+
+		States = new DeviceState[processorsCount];
+		Array.Fill(States, DeviceState.Free);
 	}
+
+	#endregion
 
 	public override void InAction(double currentTime)
 	{
-		if (State == DeviceState.Free)
+		var freeIndex = Array.IndexOf(States, DeviceState.Free);
+		if (freeIndex != -1)
 		{
-			State = DeviceState.Busy;
-			NextTimes[Array.IndexOf(NextTimes, NextTimes.Max())] = currentTime + DistributionFunc.Invoke();
+			States[freeIndex] = DeviceState.Busy;
+			NextTimes[freeIndex] = currentTime + DistributionFunc.Invoke();
 		}
 		else
 		{
@@ -57,7 +68,8 @@ public sealed class ProcessDevice : Device
 
 	public override void OutAction(double currentTime)
 	{
-		Finished++;
+		var processorI = Array.IndexOf(NextTimes, currentTime);
+		FinishedBy[processorI]++;
 		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
 
 		var nextDevice = GetNextDevice();
@@ -67,7 +79,6 @@ public sealed class ProcessDevice : Device
 			nextDevice.InAction(currentTime);
 		}
 
-		var processorI = Array.IndexOf(NextTimes, currentTime);
 		NextTimes[processorI] = double.MaxValue;
 		PreviousTime = currentTime;
 
@@ -78,7 +89,7 @@ public sealed class ProcessDevice : Device
 			MeanInQueue += InQueue * (NextTimes[processorI] - currentTime);
 			InQueue--;
 		}
-		else State = DeviceState.Free;
+		else States[processorI] = DeviceState.Free;
 	}
 
 	public void TryMigrate(double currentTime)

@@ -7,19 +7,23 @@ using RE = SystemModeling2.RandomExtended;
 //var d3 = new ProcessDevice("Process 2", RE.GetUniform(1.5, 4));
 //var d4 = new ProcessDevice("Process 3", RE.GetGaussian(3, 5), 2);
 
-//var d1 = new CreateDevice("Create 1", () => 0.25);
-//var d11 = new ProcessDevice("Process 1 1", () => 1, 5);
-//var d12 = new ProcessDevice("Process 1 2", () => 1);
-//var d21 = new ProcessDevice("Process 2 1", () => 1);
-//var d22 = new ProcessDevice("Process 2 2", () => 1, 5);
+var d1 = new CreateDevice("Create 1", () => 0.25);
+var d11 = new ProcessDevice("Process 1 1", () => 1, 5, 4);
+var d12 = new ProcessDevice("Process 1 2", () => 1);
+var d21 = new ProcessDevice("Process 2 1", () => 1);
+var d22 = new ProcessDevice("Process 2 2", () => 1, 5);
+d1.NextPriorityTuples = new List<(Device, int)> { (d11, 2), (d21, 1) };
+d11.NextPriorityTuples = new List<(Device, int)> { (d12, 1) };
+d21.NextPriorityTuples = new List<(Device, int)> { (d22, 1) };
+var model = new Model { Devices = { d1, d11, d12, d21, d22 } };
 
-var d1 = new CreateDevice("Create 1", () => 10);
-var d2 = new ProcessDevice("Process 1", () => 1, 5);
-var d3 = new ProcessDevice("Process 2", () => 2);
-d1.NextPriorityTuples = new List<(Device, int)> { (d2, 1) };
-d2.NextPriorityTuples = new List<(Device, int)> { (d3, 1) };
-d3.NextPriorityTuples = new List<(Device, int)> { (d2, 1) };
-var model = new Model { Devices = { d1, d2, d3 } };
+//var d1 = new CreateDevice("Create 1", () => 10);
+//var d2 = new ProcessDevice("Process 1", () => 1, 5);
+//var d3 = new ProcessDevice("Process 2", () => 2);
+//d1.NextPriorityTuples = new List<(Device, int)> { (d2, 1) };
+//d2.NextPriorityTuples = new List<(Device, int)> { (d3, 1) };
+//d3.NextPriorityTuples = new List<(Device, int)> { (d2, 1) };
+//var model = new Model { Devices = { d1, d2, d3 } };
 
 
 // CP-2 Task 2 with Banks

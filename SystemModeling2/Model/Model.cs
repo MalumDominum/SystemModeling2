@@ -41,7 +41,9 @@ public class Model
 	    Console.WriteLine("Sum of Created: " + createDevices.Sum(d => d.Finished) + "\n");
 
 	    foreach (var device in processDevices)
-		    Console.WriteLine("Device " + device.Name + " Processed: " + device.Finished);
+		    Console.WriteLine("Device " + device.Name + " Processed: " + 
+		                      device.FinishedBy.Select(t => t.ToString()).Aggregate((a, t) => $"{a} {t}") +
+		                      ", Sum: " + device.Finished);
 		Console.WriteLine("Sum of Processed: " + processDevices.Sum(d => d.Finished) + "\n");
 
 		var rejectedSum = processDevices.Sum(d => d.Rejected);
