@@ -22,10 +22,10 @@ public class Model
 			foreach (var device in nextDevices)
                 device.OutAction(currentTime);
 		}
-		ShowStatistics(Devices);
+		ShowStatistics(Devices, modelingTime);
 	}
 
-    public static void ShowStatistics(List<Device> devices)
+    public static void ShowStatistics(List<Device> devices, double modelingTime)
     {
 		var createDevices = new List<CreateDevice>();
 		foreach (var d in devices)
@@ -50,7 +50,12 @@ public class Model
 		Console.WriteLine("Sum of Rejected: " + processDevices.Sum(d => d.Rejected) + "\n");
 
 		foreach (var device in processDevices)
-			Console.WriteLine("Device " + device.Name + " MeanInQueueTime: " + device.MeanInQueueTime);
-		Console.WriteLine("Mean of MeanInQueueTime: " + processDevices.Select(d => d.MeanInQueueTime).Average() + "\n");
-	}
+			Console.WriteLine("Device " + device.Name + " MeanBusyTime: " + device.MeanBusyTime);
+		Console.WriteLine("Mean of MeanBusyTime: " + processDevices.Select(d => d.MeanBusyTime).Average() + 
+		                  " with " + modelingTime + " total\n");
+
+		foreach (var device in processDevices)
+			Console.WriteLine("Device " + device.Name + " MeanInQueue: " + device.MeanInQueue / modelingTime);
+		Console.WriteLine("Mean of MeanInQueue: " + processDevices.Select(d => d.MeanInQueue / modelingTime).Average());
+    }
 }

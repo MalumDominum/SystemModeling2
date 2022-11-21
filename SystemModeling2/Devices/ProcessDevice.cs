@@ -12,7 +12,9 @@ public sealed class ProcessDevice : Device
 
 	public int Rejected { get; private set; }
 
-	public double MeanInQueueTime { get; private set; }
+	public double MeanBusyTime { get; private set; }
+
+	public double MeanInQueue { get; private set; } // Must be divided by the modeling time
 
 	#endregion
 
@@ -57,15 +59,17 @@ public sealed class ProcessDevice : Device
 			ColoredConsole.WriteLine($"Pass from {Name} to {nextDevice}", ConsoleColor.DarkGray);
 			nextDevice.InAction(currentTime);
 		}
-		State = DeviceState.Free;
 		NextTime = double.MaxValue;
 
-		if (InQueue <= 0) return;
-		NextTime = currentTime + DistributionFunc.Invoke();
-		MeanInQueueTime += InQueue * (NextTime - currentTime);
-		InQueue--;
+		if (InQueue > 0)
+		{
+			NextTime = currentTime + DistributionFunc.Invoke();
+			MeanBusyTime += (double)State * (NextTime - currentTime);
+			MeanInQueue += InQueue * (NextTime - currentTime);
+			InQueue--;
+		}
+		else State = DeviceState.Free;
 	}
 
-	public override string ToString() => $"{Name}: Next Time - {NextTime}, Mean in Queue Time - {MeanInQueueTime} " +
-	                                     $"Finished - {Finished}, In Queue - {InQueue}";
+	public override string ToString() => $"{Name}: Next Time - {NextTime}, Finished - {Finished}, In Queue - {InQueue}";
 }

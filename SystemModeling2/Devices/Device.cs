@@ -48,7 +48,7 @@ public abstract class Device
 				processTuples.Add((processDevice, tuple.Item2));
 
 		var devicesWithMinQueue = processTuples.Where(t => t.Item1.InQueue == processTuples.Min(t => t.Item1.InQueue)).ToList();
-		var nextDevice = devicesWithMinQueue.First(t => t.Item2 == devicesWithMinQueue.Min(t => t.Item2));
+		var nextDevice = devicesWithMinQueue.First(t => t.Item2 == devicesWithMinQueue.Max(t => t.Item2));
 		return nextDevice.Item1;
 	}
 
