@@ -27,10 +27,10 @@ public sealed class ProcessDevice : Device
 	#endregion
 
 	public ProcessDevice(string name, Func<double> distributionFunc,
-		int maxQueue = -1, int processorsCount = 1) : base(name, distributionFunc)
+		int maxQueue = -1, int processorsCount = 1) : base(name, distributionFunc, processorsCount)
 	{
 		MaxQueue = maxQueue;
-		NextTime = double.MaxValue;
+		Array.Fill(NextTimes, double.MaxValue);
 	}
 
 	public override void InAction(double currentTime)
@@ -38,7 +38,7 @@ public sealed class ProcessDevice : Device
 		if (State == DeviceState.Free)
 		{
 			State = DeviceState.Busy;
-			NextTime = currentTime + DistributionFunc.Invoke();
+			NextTimes[Array.IndexOf(NextTimes, NextTimes.Max())] = currentTime + DistributionFunc.Invoke();
 		}
 		else
 		{
@@ -66,14 +66,16 @@ public sealed class ProcessDevice : Device
 			ColoredConsole.WriteLine($"Pass from {Name} to {nextDevice}", ConsoleColor.DarkGray);
 			nextDevice.InAction(currentTime);
 		}
-		NextTime = double.MaxValue;
+
+		var processorI = Array.IndexOf(NextTimes, currentTime);
+		NextTimes[processorI] = double.MaxValue;
 		PreviousTime = currentTime;
 
 		if (InQueue > 0)
 		{
-			NextTime = currentTime + DistributionFunc.Invoke();
-			MeanBusyTime += NextTime - currentTime;
-			MeanInQueue += InQueue * (NextTime - currentTime);
+			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
+			MeanBusyTime += NextTimes[processorI] - currentTime;
+			MeanInQueue += InQueue * (NextTimes[processorI] - currentTime);
 			InQueue--;
 		}
 		else State = DeviceState.Free;
@@ -92,5 +94,6 @@ public sealed class ProcessDevice : Device
 		toDevice.InAction(currentTime);
 	}
 
-	public override string ToString() => $"{Name}: Next Time - {NextTime}, Finished - {Finished}, In Queue - {InQueue}";
+	public override string ToString() => $"{Name}: Next Times - {NextTimes.Select(t => t.ToString())
+										 .Aggregate((a, t) => $"{a} {t}")}, Finished - {Finished}, In Queue - {InQueue}";
 }

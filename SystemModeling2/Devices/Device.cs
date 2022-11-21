@@ -8,9 +8,9 @@ public abstract class Device
 
 	public string Name { get; set; }
 
-    public double NextTime { get; protected set; }
+    public double[] NextTimes { get; protected set; }
 
-    public Func<double> DistributionFunc { get; init; }
+	public Func<double> DistributionFunc { get; init; }
 
     public List<(Device, int)>? NextPriorityTuples { get; set; }
 
@@ -22,13 +22,12 @@ public abstract class Device
 
 	#region Constructor
 
-	protected Device(string name, Func<double> distributionFunc)
+	protected Device(string name, Func<double> distributionFunc, int processorsCount = 1)
     {
         Name = name;
         DistributionFunc = distributionFunc;
-
-        NextTime = distributionFunc.Invoke();
 		State = DeviceState.Free;
+		NextTimes = new double[processorsCount];
     }
 
 	#endregion
@@ -51,5 +50,6 @@ public abstract class Device
 		return nextDevice.Item1;
 	}
 
-	public override string ToString() => $"{Name}: Next Time - {NextTime}, Finished - {Finished}";
+	public override string ToString() => $"{Name}: Next Times - {NextTimes.Select(t => t.ToString()).Aggregate((a, t) => $"{a} {t}")}, " +
+	                                     $"Finished - {Finished}";
 }

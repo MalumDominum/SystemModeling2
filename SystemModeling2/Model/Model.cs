@@ -14,9 +14,9 @@ public class Model
 
 		while (currentTime < modelingTime)
 		{
-			var nextTime = Devices.Min(d => d.NextTime);
+			var nextTime = Devices.Min(d => d.NextTimes.Min());
 			if (nextTime > modelingTime) break;
-			var nextDevices = Devices.Where(d => d.NextTime == nextTime);
+			var nextDevices = Devices.Where(d => d.NextTimes.Contains(nextTime));
 			currentTime = nextTime;
 
 			foreach (var device in nextDevices)
