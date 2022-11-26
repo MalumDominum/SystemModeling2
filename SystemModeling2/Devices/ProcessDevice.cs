@@ -1,4 +1,5 @@
 ﻿using SystemModeling2.Devices.Enums;
+using SystemModeling2.Devices.Models;
 
 namespace SystemModeling2.Devices;
 
@@ -12,9 +13,13 @@ public sealed class ProcessDevice : Device
 
 	public List<ProcessDevice>? MigrateOptions { get; set; }
 
+	public List<int>? PrioritizedTypes { get; set; }
+
 	public int MaxQueue { get; init; }
 
-	public int InQueue { get; private set; }
+	public PriorityQueue<int, int> Queue { get; }
+
+	public int InQueue => Queue.Count;
 
 	public int Rejected { get; private set; }
 
@@ -26,14 +31,20 @@ public sealed class ProcessDevice : Device
 
 	private double PreviousTime { get; set; }
 
+	public List<int> Processed { get; }
+
 	#endregion
 
 	#region Constructor
 
 	public ProcessDevice(string name, Func<double> distributionFunc, int maxQueue = -1,
-		int processorsCount = 1, StartedConditions? conditions = null) : base(name, distributionFunc, processorsCount)
+		int processorsCount = 1, List<int>? prioritizedTypes = null, StartedConditions? conditions = null)
+		: base(name, distributionFunc, processorsCount)
 	{
 		MaxQueue = maxQueue;
+		PrioritizedTypes = prioritizedTypes;
+		Queue = new PriorityQueue<int, int>();
+		Processed = new List<int>();
 
 		Array.Fill(NextTimes, double.MaxValue);
 
@@ -44,14 +55,15 @@ public sealed class ProcessDevice : Device
 			States[i] = DeviceState.Busy;
 
 		if (conditions?.InQueue == null) return;
-		InQueue = (int)conditions.InQueue;
+		foreach (var elementType in conditions.InQueue)
+			PrioritizedEnqueue(elementType);
 		for (var i = 0; i < InQueue && i < processorsCount; i++)
 			NextTimes[i] = distributionFunc.Invoke();
 	}
 
 	#endregion
 
-	public override void InAction(double currentTime)
+	public override void InAction(double currentTime, int elementType = 1)
 	{
 		var freeIndex = Array.IndexOf(States, DeviceState.Free);
 		if (freeIndex != -1)
@@ -63,7 +75,7 @@ public sealed class ProcessDevice : Device
 		{
 			if (InQueue < MaxQueue || MaxQueue == -1)
 			{
-				InQueue++;
+				PrioritizedEnqueue(elementType);
 				ColoredConsole.WriteLine($"In Queue {this}", ConsoleColor.DarkYellow);
 			}
 			else
@@ -74,7 +86,7 @@ public sealed class ProcessDevice : Device
 		}
 	}
 
-	public override void OutAction(double currentTime)
+	public override void OutAction(double currentTime, int elementType = 1)
 	{
 		var processorI = Array.IndexOf(NextTimes, currentTime);
 		FinishedBy[processorI]++;
@@ -95,7 +107,7 @@ public sealed class ProcessDevice : Device
 			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
 			MeanBusyTime += NextTimes[processorI] - currentTime;
 			MeanInQueue += InQueue * (NextTimes[processorI] - currentTime);
-			InQueue--;
+			Processed.Add(Queue.Dequeue());
 		}
 		else States[processorI] = DeviceState.Free;
 	}
@@ -108,11 +120,26 @@ public sealed class ProcessDevice : Device
 		ColoredConsole.WriteLine($"Migrated to {toDevice.Name} (InQueue: {toDevice.InQueue}) " +
 		                         $"from {Name} (InQueue: {InQueue})", ConsoleColor.DarkBlue);
 		Migrated++;
-		InQueue--;
 		MeanInQueue -= currentTime - PreviousTime;
-		toDevice.InAction(currentTime);
+		toDevice.InAction(currentTime, Queue.Dequeue());
 	}
 
-	public override string ToString() => $"{Name}: Next Times - {NextTimes.Select(t => t.ToString())
-										 .Aggregate((a, t) => $"{a} {t}")}, Finished - {Finished}, In Queue - {InQueue}";
+	public void PrioritizedEnqueue(int elementType) => Queue.Enqueue(elementType, GetElementPriority(elementType));
+
+	public int GetElementPriority(int elementType) => PrioritizedTypes != null
+		? PrioritizedTypes.IndexOf(elementType) == -1 ? int.MaxValue : PrioritizedTypes.IndexOf(elementType)
+		: 0;
+
+	public string StringifyTypesCount(List<int> elementTypes) =>
+		elementTypes.Distinct()
+					.OrderBy(t => t)
+					.Aggregate("", (current, type) =>
+						$"{current}{(current == "" ? "" : ", ")}" +
+						$"{type} = {elementTypes.Count(t => t == type)}");
+
+	public string StringifyList(IEnumerable<double> list) => list.Select(t => t.ToString()).Aggregate((a, t) => $"{a}, {t}");
+
+	public override string ToString() => $"{Name}: Next Times - {StringifyList(NextTimes)}; " +
+	                                     $"Processed - {StringifyTypesCount(Processed)}; " +
+	                                     $"In Queue - {StringifyTypesCount(Queue.UnorderedItems.Select(t => t.Element).ToList())}";
 }
