@@ -1,5 +1,6 @@
 ﻿using SystemModeling2.Devices.Enums;
 using SystemModeling2.Devices.Models;
+using SC = SystemModeling2.Infrastructure.ToStringConvertor;
 
 namespace SystemModeling2.Devices;
 
@@ -63,13 +64,14 @@ public sealed class ProcessDevice : Device
 
 	#endregion
 
-	public override void InAction(double currentTime, int elementType = 1)
+	public void InAction(double currentTime, int elementType = 1)
 	{
 		var freeIndex = Array.IndexOf(States, DeviceState.Free);
 		if (freeIndex != -1)
 		{
 			States[freeIndex] = DeviceState.Busy;
 			NextTimes[freeIndex] = currentTime + DistributionFunc.Invoke();
+			PrioritizedEnqueue(elementType);
 		}
 		else
 		{
@@ -86,23 +88,24 @@ public sealed class ProcessDevice : Device
 		}
 	}
 
-	public override void OutAction(double currentTime, int elementType = 1)
+	public override void OutAction(double currentTime)
 	{
 		var processorI = Array.IndexOf(NextTimes, currentTime);
 		FinishedBy[processorI]++;
 		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
 
-		var nextDevice = GetNextDevice();
+		var elementType = Queue.Peek();
+		var nextDevice = GetNextDevice(elementType);
 		if (nextDevice != null)
 		{
 			ColoredConsole.WriteLine($"Pass from {Name} to {nextDevice}", ConsoleColor.DarkGray);
-			nextDevice.InAction(currentTime);
+			nextDevice.InAction(currentTime, elementType);
 		}
 
 		NextTimes[processorI] = double.MaxValue;
 		PreviousTime = currentTime;
 
-		if (InQueue > 0)
+		if (InQueue > 1)
 		{
 			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
 			MeanBusyTime += NextTimes[processorI] - currentTime;
@@ -124,22 +127,13 @@ public sealed class ProcessDevice : Device
 		toDevice.InAction(currentTime, Queue.Dequeue());
 	}
 
-	public void PrioritizedEnqueue(int elementType) => Queue.Enqueue(elementType, GetElementPriority(elementType));
+	private void PrioritizedEnqueue(int elementType) => Queue.Enqueue(elementType, GetElementPriority(elementType));
 
-	public int GetElementPriority(int elementType) => PrioritizedTypes != null
-		? PrioritizedTypes.IndexOf(elementType) == -1 ? int.MaxValue : PrioritizedTypes.IndexOf(elementType)
-		: 0;
+	private int GetElementPriority(int elementType) =>
+		PrioritizedTypes != null && PrioritizedTypes.IndexOf(elementType) != -1
+		  ? PrioritizedTypes.IndexOf(elementType) : int.MaxValue;
 
-	public string StringifyTypesCount(List<int> elementTypes) =>
-		elementTypes.Distinct()
-					.OrderBy(t => t)
-					.Aggregate("", (current, type) =>
-						$"{current}{(current == "" ? "" : ", ")}" +
-						$"{type} = {elementTypes.Count(t => t == type)}");
-
-	public string StringifyList(IEnumerable<double> list) => list.Select(t => t.ToString()).Aggregate((a, t) => $"{a}, {t}");
-
-	public override string ToString() => $"{Name}: Next Times - {StringifyList(NextTimes)}; " +
-	                                     $"Processed - {StringifyTypesCount(Processed)}; " +
-	                                     $"In Queue - {StringifyTypesCount(Queue.UnorderedItems.Select(t => t.Element).ToList())}";
+	public override string ToString() => $"{Name}: Next Times - {SC.StringifyList(NextTimes)}; " +
+	                                     $"Processed - {SC.StringifyTypesCount(Processed)}; " +
+	                                     $"In Queue - {SC.StringifyTypesCount(Queue.UnorderedItems.Select(t => t.Element).ToList())}";
 }

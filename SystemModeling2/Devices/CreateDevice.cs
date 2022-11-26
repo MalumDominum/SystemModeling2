@@ -17,15 +17,13 @@ public class CreateDevice : Device
 			NextTimes[i] = distributionFunc.Invoke();
 	}
 
-	public override void InAction(double currentTime, int _ = 1) { }
-
-	public override void OutAction(double currentTime, int _ = 1)
+	public override void OutAction(double currentTime)
 	{
 		var processorIndex = Array.IndexOf(NextTimes, currentTime);
 		FinishedBy[processorIndex]++;
 		NextTimes[processorIndex] = currentTime + DistributionFunc.Invoke();
 
-		var nextDevice = GetNextDevice();
+		var nextDevice = GetNextDevice(CreatingType);
 		if (nextDevice == null) return;
 		Console.WriteLine($"Created to {nextDevice.Name} from {(NextTimes.Length > 1 ? $"[{processorIndex}] " : "")}{this}");
 		nextDevice.InAction(currentTime, CreatingType);

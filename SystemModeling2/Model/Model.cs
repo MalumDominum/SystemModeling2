@@ -1,4 +1,5 @@
 ﻿using SystemModeling2.Devices;
+using SC = SystemModeling2.Infrastructure.ToStringConvertor;
 
 namespace SystemModeling2.Model;
 
@@ -33,38 +34,41 @@ public class Model
     {
 	    var createDevices = GetSpecificDevices<CreateDevice>(devices);
 	    var processDevices = GetSpecificDevices<ProcessDevice>(devices);
-
-		// TODO Make table output
+		
 		Console.WriteLine("\n");
 		var createdSum = createDevices.Sum(d => d.Finished);
 		foreach (var device in createDevices)
-		    Console.WriteLine("Device " + device.Name + " Created: " + device.Finished);
-	    Console.WriteLine("Sum of Created: " + createdSum + "\n");
+		    Console.WriteLine($"Device {device.Name} Created: {device.Finished} of type {device.CreatingType}");
+	    Console.WriteLine($"Sum of Created: {createdSum}\n");
 		
 		foreach (var device in processDevices)
-		    Console.WriteLine("Device " + device.Name + " Processed: " + 
-		                      device.FinishedBy.Select(t => t.ToString()).Aggregate((a, t) => $"{a} {t}") +
-		                      ", Sum: " + device.Finished);
-		Console.WriteLine("Sum of Processed: " + processDevices.Sum(d => d.Finished) + "\n");
+		    Console.WriteLine($"Device {device.Name} Processed: {SC.StringifyTypesCount(device.Processed)}, Sum: {device.Finished}");
+		Console.WriteLine($"Sum of Processed: {processDevices.Sum(d => d.Finished)}\n");
 
 		var rejectedSum = processDevices.Sum(d => d.Rejected);
-		foreach (var device in processDevices)
-			Console.WriteLine("Device " + device.Name + " Rejected: " + device.Rejected);
-		Console.WriteLine("Sum of Rejected: " + rejectedSum + " / " +
-		                  Math.Round((double)rejectedSum / createdSum * 100, 2) + "%\n");
+		if (processDevices.Any(d => d.Migrated > 0))
+		{
+			foreach (var device in processDevices)
+				Console.WriteLine($"Device {device.Name} Rejected: {device.Rejected}");
+			Console.WriteLine($"Sum of Rejected: {rejectedSum} / {Math.Round((double)rejectedSum / createdSum * 100, 2)}%\n");
+	    }
+	    else ColoredConsole.WriteLine("Devices doesn't reject elements\n", ConsoleColor.DarkGray);
+
+		if (processDevices.Any(d => d.Migrated > 0))
+		{
+			foreach (var device in processDevices)
+				Console.WriteLine($"Device {device.Name} Migrated: {device.Migrated}");
+			Console.WriteLine($"Sum of Migrated: {processDevices.Sum(d => d.Migrated)}\n");
+		}
+		else ColoredConsole.WriteLine("Elements doesn't migrated between devices\n", ConsoleColor.DarkGray);
 
 		foreach (var device in processDevices)
-			Console.WriteLine("Device " + device.Name + " Migrated: " + device.Migrated);
-		Console.WriteLine("Sum of Migrated: " + processDevices.Sum(d => d.Migrated) + "\n");
-
+			Console.WriteLine($"Device {device.Name} MeanBusyTime: {device.MeanBusyTime}");
+		Console.WriteLine($"Mean of MeanBusyTime: {processDevices.Select(d => d.MeanBusyTime).Average()} with {modelingTime} total\n");
+		
 		foreach (var device in processDevices)
-			Console.WriteLine("Device " + device.Name + " MeanBusyTime: " + device.MeanBusyTime);
-		Console.WriteLine("Mean of MeanBusyTime: " + processDevices.Select(d => d.MeanBusyTime).Average() + 
-		                  " with " + modelingTime + " total\n");
-
-		foreach (var device in processDevices)
-			Console.WriteLine("Device " + device.Name + " MeanInQueue: " + device.MeanInQueue / modelingTime);
-		Console.WriteLine("Mean of MeanInQueue: " + processDevices.Select(d => d.MeanInQueue / modelingTime).Average());
+			Console.WriteLine($"Device {device.Name} MeanInQueue: {device.MeanInQueue / modelingTime}");
+		Console.WriteLine($"Mean of MeanInQueue: {processDevices.Select(d => d.MeanInQueue / modelingTime).Average()}");
     }
 
     private static List<T> GetSpecificDevices<T>(List<Device> devices) where T : Device
