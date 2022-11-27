@@ -1,4 +1,5 @@
 ﻿using SystemModeling2.Devices;
+using SystemModeling2.Devices.Models;
 using SC = SystemModeling2.Infrastructure.ToStringConvertor;
 
 namespace SystemModeling2.Model;
@@ -28,6 +29,7 @@ public class Model
 					processDevice.TryMigrate(currentTime);
 		}
 		ShowStatistics(Devices, modelingTime);
+		CreateDevice.AllElements.Clear();
 	}
 
     public static void ShowStatistics(List<Device> devices, double modelingTime)
@@ -46,7 +48,7 @@ public class Model
 		Console.WriteLine($"Sum of Processed: {processDevices.Sum(d => d.Finished)}\n");
 
 		var rejectedSum = processDevices.Sum(d => d.Rejected);
-		if (processDevices.Any(d => d.Migrated > 0))
+		if (processDevices.Any(d => d.Rejected > 0))
 		{
 			foreach (var device in processDevices)
 				Console.WriteLine($"Device {device.Name} Rejected: {device.Rejected}");
@@ -57,19 +59,28 @@ public class Model
 		if (processDevices.Any(d => d.Migrated > 0))
 		{
 			foreach (var device in processDevices)
-				Console.WriteLine($"Device {device.Name} Migrated: {device.Migrated}");
+				Console.WriteLine($"Device {device.Name} Migrated:\t{device.Migrated}");
 			Console.WriteLine($"Sum of Migrated: {processDevices.Sum(d => d.Migrated)}\n");
 		}
 		else ColoredConsole.WriteLine("Elements doesn't migrated between devices\n", ConsoleColor.DarkGray);
 
 		foreach (var device in processDevices)
 			Console.WriteLine($"Device {device.Name} MeanBusyTime: {device.MeanBusyTime}");
-		Console.WriteLine($"Mean of MeanBusyTime: {processDevices.Select(d => d.MeanBusyTime).Average()} with {modelingTime} total\n");
+		Console.WriteLine($"MeanBusyTime of all: {processDevices.Select(d => d.MeanBusyTime).Average()} with {modelingTime} total\n");
 		
 		foreach (var device in processDevices)
 			Console.WriteLine($"Device {device.Name} MeanInQueue: {device.MeanInQueue / modelingTime}");
-		Console.WriteLine($"Mean of MeanInQueue: {processDevices.Select(d => d.MeanInQueue / modelingTime).Average()}");
-    }
+		Console.WriteLine($"MeanInQueue of all: {processDevices.Select(d => d.MeanInQueue / modelingTime).Average()}\n");
+
+		foreach (var device in processDevices)
+			Console.WriteLine($"Device {device.Name} MeanIncomingTime: {SC.StringifyDict(device.IncomingTimes, modelingTime)}");
+		Console.WriteLine($"MeanIncomingTime of all: {processDevices.Average(d => d.IncomingTimes.Average(x => x.Value / modelingTime))}\n");
+
+		foreach (var type in CreateDevice.AllElements.Select(e => e.Type).Distinct().Order())
+			Console.WriteLine($"Element type {type}: MeanLiveTime - " +
+			                  $"{CreateDevice.AllElements.Where(e => e.Type == type).Average(e => e.LiveTime)}");
+		Console.WriteLine($"MeanLiveTime of all: {CreateDevice.AllElements.Select(e => e.LiveTime).Average()}\n");
+	}
 
     private static List<T> GetSpecificDevices<T>(List<Device> devices) where T : Device
     {

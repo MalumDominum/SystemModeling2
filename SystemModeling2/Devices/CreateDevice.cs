@@ -6,6 +6,8 @@ public class CreateDevice : Device
 {
 	public int CreatingType { get; init; }
 
+	public static List<Element> AllElements { get; } = new();
+
 	public CreateDevice(string name, Func<double> distributionFunc, int creatingType = 1, int processorsCount = 1,
 		StartedConditions? conditions = null) : base(name, distributionFunc, processorsCount)
 	{
@@ -25,7 +27,10 @@ public class CreateDevice : Device
 
 		var nextDevice = GetNextDevice(CreatingType);
 		if (nextDevice == null) return;
+		
+		var createdElement = new Element(CreatingType, currentTime);
+		AllElements.Add(createdElement);
 		Console.WriteLine($"Created to {nextDevice.Name} from {(NextTimes.Length > 1 ? $"[{processorIndex}] " : "")}{this}");
-		nextDevice.InAction(currentTime, CreatingType);
+		nextDevice.InAction(currentTime, createdElement);
 	}
 }
