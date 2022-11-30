@@ -1,68 +1,58 @@
-﻿using SystemModeling2.Devices;
-using SystemModeling2.Model;
-using Path = SystemModeling2.Devices.Models.Path;
+﻿using SystemModeling2;
+using SystemModeling2.Devices;
+using SystemModeling2.Infrastructure;
 using RE = SystemModeling2.Infrastructure.RandomExtended;
 
-//var d1 = new CreateDevice("Create 1", RE.GetUniform(1.5, 4));
-//var d2 = new ProcessDevice("Process 1", RE.GetExponential(2), 3);
-//var d3 = new ProcessDevice("Process 2", RE.GetUniform(1.5, 4));
-//var d4 = new ProcessDevice("Process 3", RE.GetGaussian(3, 5), 2);
-
-var d1 = new CreateDevice("Create 1", () => 0.25);
-var d11 = new ProcessDevice("Process 1 1", () => 1, 5, 4);
-var d12 = new ProcessDevice("Process 1 2", () => 1);
-var d21 = new ProcessDevice("Process 2 1", () => 1);
-var d22 = new ProcessDevice("Process 2 2", () => 1, 5);
-d1.Paths = new List<Path> { new(d11), new(d21, 2) };
-d11.Paths = new List<Path> { new(d12) };
-d21.Paths = new List<Path> { new(d22) };
-//var model = new Model { Devices = { d1, d11, d12, d21, d22 } };
-
-//var d1 = new CreateDevice("Create 1", () => 10);
-//var d2 = new ProcessDevice("Process 1", () => 1, 5);
-//var d3 = new ProcessDevice("Process 2", () => 2);
-//d1.Paths = new List<Path> { new(d2) };
-//d2.Paths = new List<Path> { new(d3) };
-//d3.Paths = new List<Path> { new(d2) };
-//var model = new Model { Devices = { d1, d2, d3 } };
+var createT = new Transition("Create T", () => 1);
+var goToServiceT = new Transition("Go to service T", () => 1);
+var busyT = new Transition("Busy a resource T", () => 1);
+var freeT = new Transition("Free a resourse T", () => 1);
+var finalT1 = new Transition("Final T1", () => 1);
+var finalT2 = new Transition("Final T2", () => 1);
+var finalT3 = new Transition("Final T3", () => 1);
+var finalT4 = new Transition("Final T4", () => 1);
+var transitions = new List<Transition> { createT, goToServiceT, busyT, freeT, finalT1, finalT2, finalT3, finalT4 };
 
 
-#region CP-2 Task 2 with Banks
-
-//var dc1 = new CreateDevice("Create 1", RE.GetExponential(0.3), conditions: new StartedConditions(null, null, 0.1));
-//var dp1 = new ProcessDevice("Process 1", RE.GetGaussian(1, 0.3), 3, conditions: new StartedConditions(1, new[] { 2 }, null));
-//var dp2 = new ProcessDevice("Process 2", RE.GetGaussian(1, 0.3), 3, conditions: new StartedConditions(1, new[] { 2 }, null));
-//
-//dc1.Paths = new List<Path> { new(dp1), new(dp2, 2) };
-//dp1.MigrateOptions = new List<ProcessDevice> { dp2 };
-//dp2.MigrateOptions = new List<ProcessDevice> { dp1 };
-//var model = new Model { Devices = { dc1, dp1, dp2 } };
-
-#endregion
-
-#region CP-2 Task 3 with the Hospital
-
-var dc1 = new CreateDevice("Create 1", () => RE.Exponential(5) / 0.5);         // RE.Exponential(15) / 0.5 + RE.Exponential(15) 
-var dc2 = new CreateDevice("Create 2", () => RE.Exponential(5) / 0.1, 2);	   // RE.Exponential(15) / 0.1 + RE.Exponential(40)
-var dc3 = new CreateDevice("Create 3", () => RE.Exponential(5) / 0.4, 3);      // RE.Exponential(15) / 0.4 + RE.Exponential(30)
-
-var doctors = new ProcessDevice("Doctors", RE.GetExponential(15), -1, 2, new List<int> { 1 });
-var register = new ProcessDevice("Register", () => RE.Uniform(2, 5) + RE.Erlang(4.5, 3));
-var laboratory = new ProcessDevice("Laboratory", () => RE.Erlang(4, 2) + RE.Uniform(2, 5));
-var ward = new ProcessDevice("Ward", RE.GetUniform(3, 8), processorsCount: 3);
-
-dc1.Paths = new List<Path> { new(doctors) };
-dc2.Paths = new List<Path> { new(doctors) };
-dc3.Paths = new List<Path> { new(doctors) };
-
-doctors.Paths = new List<Path> { new(ward, 2, new List<int> { 1 }), new(register, 1, new List<int>{ 2, 3 }) };
-
-register.Paths = new List<Path> { new(laboratory) };
-laboratory.Paths = new List<Path> { new(ward, passTypes: new List<int> { 2 }) }; // Don't pass 3 type
+var createP1 = new Place("Create P1");
+var createP2 = new Place("Create P2", 1);
+var passP = new Place("Pass P");
+var busyP = new Place("Busy P");
+var freeP = new Place("Free P", 1);
+var passFinalP = new Place("Pass final P");
+var finalP1 = new Place("Final P1");
+var finalP2 = new Place("Final P2");
+var finalP3 = new Place("Final P3");
+var finalP4 = new Place("Final P4");
+var places = new List<Place> { createP1, createP2, passP, busyP, freeP, passFinalP, finalP1, finalP2, finalP3, finalP4 };
 
 
-var model = new Model { Devices = { dc1, dc2, dc3, doctors, ward, register, laboratory } };
+var createA1 = ArcBuilder.Build(createP1, createT);
+var createA2 = ArcBuilder.Build(createT, createP2);
+var createA3 = ArcBuilder.Build(createP2, goToServiceT);
+var createA4 = ArcBuilder.Build(goToServiceT, createP1);
+var serviceA1 = ArcBuilder.Build(goToServiceT, passP);
+var serviceA2 = ArcBuilder.Build(passP, busyT);
+var busyA1 = ArcBuilder.Build(busyT, busyP);
+var busyA2 = ArcBuilder.Build(busyP, freeT);
+var freeA1 = ArcBuilder.Build(freeT, freeP);
+var freeA2 = ArcBuilder.Build(freeP, busyT);
+var finalPassA = ArcBuilder.Build(freeT, passFinalP);
+var finalA1ToTransition = ArcBuilder.Build(passFinalP, finalT1);
+var finalA2ToTransition = ArcBuilder.Build(passFinalP, finalT2);
+var finalA3ToTransition = ArcBuilder.Build(passFinalP, finalT3);
+var finalA4ToTransition = ArcBuilder.Build(passFinalP, finalT4);
+var finalA1ToPlace = ArcBuilder.Build(finalT1, finalP1);
+var finalA2ToPlace = ArcBuilder.Build(finalT2, finalP2);
+var finalA3ToPlace = ArcBuilder.Build(finalT3, finalP3);
+var finalA4ToPlace = ArcBuilder.Build(finalT4, finalP4);
 
-#endregion
 
-model.Simulate(10000);
+var model = new Model
+{
+	Transitions = transitions,
+	Places = places,
+};
+
+model.Simulate(5000);
+

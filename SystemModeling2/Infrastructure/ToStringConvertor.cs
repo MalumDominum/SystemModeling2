@@ -1,6 +1,4 @@
-﻿using SystemModeling2.Devices.Models;
-
-namespace SystemModeling2.Infrastructure;
+﻿namespace SystemModeling2.Infrastructure;
 
 public static class ToStringConvertor
 {
@@ -14,12 +12,4 @@ public static class ToStringConvertor
 		dictionary.OrderBy(d => d.Key)
 			      .Select(d => $"{d.Key} = {(modelingTime != null ? d.Value / modelingTime : d.Value)}")
 				  .Aggregate((a, c) => $"{a}, {c}");
-
-	public static string StringifyTypesCount(IReadOnlyCollection<Element> elements) =>
-		elements.Select(e => e.Type)
-				.Distinct()
-				.Order()
-				.Aggregate("", (current, type) =>
-					$"{current}{(current == "" ? "" : ", ")}" +
-					$"{type} = {elements.Select(e => e.Type).Count(t => t == type)}");
 }
