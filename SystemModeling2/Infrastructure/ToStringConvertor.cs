@@ -11,15 +11,21 @@ public static class ToStringConvertor
 	public static string StringifyList(IEnumerable<int> list) => list.Select(x => $"{x}").Aggregate((a, c) => $"{a}, {c}");
 
 	public static string StringifyDict(IDictionary<int, double> dictionary, double? modelingTime = null) =>
-		dictionary.OrderBy(d => d.Key)
-			      .Select(d => $"{d.Key} = {(modelingTime != null ? d.Value / modelingTime : d.Value)}")
-				  .Aggregate((a, c) => $"{a}, {c}");
+		dictionary.Any()
+			? dictionary.OrderBy(d => d.Key)
+			      .Select(d => $"{d.Key} = {Math.Round((double)(modelingTime != null ? d.Value / modelingTime : d.Value), 6)}")
+				  .Aggregate((a, c) => $"{a}, {c}")
+			: "";
 
-	public static string StringifyTypesCount(IReadOnlyCollection<Element> elements) =>
-		elements.Select(e => e.Type)
-				.Distinct()
-				.Order()
-				.Aggregate("", (current, type) =>
-					$"{current}{(current == "" ? "" : ", ")}" +
-					$"{type} = {elements.Select(e => e.Type).Count(t => t == type)}");
+	public static string StringifyTypesCount(IReadOnlyCollection<Element> elements)
+	{
+		var result = elements.Select(e => e.Type)
+			.Distinct()
+			.Order()
+			.ToList()
+			.Aggregate("", (current, type) =>
+				$"{current}{(current == "" ? "" : ", ")}" +
+				$"{type} = {elements.Select(e => e.Type).Count(t => t == type)}");
+		return result != "" ? result : "NULL";
+	}
 }

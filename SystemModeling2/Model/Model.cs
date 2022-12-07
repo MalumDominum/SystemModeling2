@@ -51,8 +51,8 @@ public class Model
 		if (processDevices.Any(d => d.Rejected > 0))
 		{
 			foreach (var device in processDevices)
-				Console.WriteLine($"Device {device.Name} Rejected: {device.Rejected}");
-			Console.WriteLine($"Sum of Rejected: {rejectedSum} / {Math.Round((double)rejectedSum / createdSum * 100, 2)}%\n");
+				Console.WriteLine($"Device {device.Name} Rejected: {device.Rejected} | That is {Math.Round((double)device.Rejected / device.Finished * 100, 2)}% of Processed");
+			Console.WriteLine($"Sum of Rejected: {rejectedSum} | {Math.Round((double)rejectedSum / createdSum * 100, 2)}% chance of Reject\n");
 	    }
 	    else ColoredConsole.WriteLine("Devices doesn't reject elements\n", ConsoleColor.DarkGray);
 
@@ -65,21 +65,22 @@ public class Model
 		else ColoredConsole.WriteLine("Elements doesn't migrated between devices\n", ConsoleColor.DarkGray);
 
 		foreach (var device in processDevices)
-			Console.WriteLine($"Device {device.Name} MeanBusyTime: {device.MeanBusyTime}");
-		Console.WriteLine($"MeanBusyTime of all: {processDevices.Select(d => d.MeanBusyTime).Average()} with {modelingTime} total\n");
+			Console.WriteLine($"Device {device.Name} MeanBusyTime: {Math.Round(device.MeanBusyTime, 6)}");
+		Console.WriteLine($"MeanBusyTime of all: {Math.Round(processDevices.Select(d => d.MeanBusyTime).Average(), 6)} " +
+		                  $"with {modelingTime} total\n");
 		
 		foreach (var device in processDevices)
-			Console.WriteLine($"Device {device.Name} MeanInQueue: {device.MeanInQueue / modelingTime}");
-		Console.WriteLine($"MeanInQueue of all: {processDevices.Select(d => d.MeanInQueue / modelingTime).Average()}\n");
+			Console.WriteLine($"Device {device.Name} MeanInQueue: {Math.Round(device.MeanInQueue / modelingTime, 6)}");
+		Console.WriteLine($"MeanInQueue of all: {Math.Round(processDevices.Select(d => d.MeanInQueue / modelingTime).Average(), 6)}\n");
 
 		foreach (var device in processDevices)
 			Console.WriteLine($"Device {device.Name} MeanIncomingTime: {SC.StringifyDict(device.IncomingTimes, modelingTime)}");
-		Console.WriteLine($"MeanIncomingTime of all: {processDevices.Average(d => d.IncomingTimes.Average(x => x.Value / modelingTime))}\n");
+		Console.WriteLine($"MeanIncomingTime of all: {Math.Round(processDevices.Average(d => d.IncomingTimes.Average(x => x.Value / modelingTime)), 4)}\n");
 
 		foreach (var type in CreateDevice.AllElements.Select(e => e.Type).Distinct().Order())
 			Console.WriteLine($"Element type {type}: MeanLiveTime - " +
-			                  $"{CreateDevice.AllElements.Where(e => e.Type == type).Average(e => e.LiveTime)}");
-		Console.WriteLine($"MeanLiveTime of all: {CreateDevice.AllElements.Select(e => e.LiveTime).Average()}\n");
+			                  $"{Math.Round((double)CreateDevice.AllElements.Where(e => e.Type == type).Average(e => e.LiveTime), 6)}");
+		Console.WriteLine($"MeanLiveTime of all: {Math.Round((double)CreateDevice.AllElements.Select(e => e.LiveTime).Average(), 6)}\n");
 	}
 
     private static List<T> GetSpecificDevices<T>(List<Device> devices) where T : Device

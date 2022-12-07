@@ -1,4 +1,5 @@
 ﻿using SystemModeling2.Devices.Models;
+using SC = SystemModeling2.Infrastructure.ToStringConvertor;
 
 namespace SystemModeling2.Devices;
 
@@ -33,4 +34,6 @@ public class CreateDevice : Device
 		Console.WriteLine($"Created to {nextDevice.Name} from {(NextTimes.Length > 1 ? $"[{processorIndex}] " : "")}{this}");
 		nextDevice.InAction(currentTime, createdElement);
 	}
+
+	public override string ToString() => $"{Name}: Next Times - {SC.StringifyList(NextTimes)}; Created - {Finished}";
 }

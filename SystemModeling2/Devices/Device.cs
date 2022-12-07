@@ -44,6 +44,4 @@ public abstract class Device
 		var pathsWithMinQueue = pathsCanBePassed.Where(p => p.Destination.InQueue == pathsCanBePassed.Min(path => path.Destination.InQueue));
 		return pathsWithMinQueue.MinBy(p => p.Priority)?.Destination;
 	}
-
-	public override string ToString() => $"{Name}: Next Times - {SC.StringifyList(NextTimes)}; Finished - {Finished}";
 }

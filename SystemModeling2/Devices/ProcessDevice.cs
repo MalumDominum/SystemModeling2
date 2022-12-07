@@ -18,8 +18,6 @@ public sealed class ProcessDevice : Device
 
 	private double PreviousTime { get; set; }
 
-	public List<Element> Processed { get; }
-
 	public List<ProcessDevice>? MigrateOptions { get; set; }
 
 	public List<int>? PrioritizedTypes { get; set; }
@@ -29,6 +27,8 @@ public sealed class ProcessDevice : Device
 	#endregion
 
 	#region Statistics Properties
+
+	public List<Element> Processed { get; }
 
 	public int Rejected { get; private set; }
 
@@ -73,6 +73,13 @@ public sealed class ProcessDevice : Device
 
 	public void InAction(double currentTime, Element element)
 	{
+		if (InQueue >= MaxQueue && MaxQueue != -1)
+		{
+			Rejected++;
+			ColoredConsole.WriteLine($"Rejected {this}", ConsoleColor.DarkRed);
+			return;
+		}
+
 		var freeIndex = Array.IndexOf(States, DeviceState.Free);
 		if (freeIndex != -1)
 		{
@@ -82,26 +89,18 @@ public sealed class ProcessDevice : Device
 		}
 		else
 		{
-			if (InQueue < MaxQueue || MaxQueue == -1)
-			{
-				PrioritizedEnqueueWithStatistics(element, currentTime);
-				ColoredConsole.WriteLine($"In Queue {this}", ConsoleColor.DarkYellow);
-			}
-			else
-			{
-				Rejected++;
-				ColoredConsole.WriteLine($"Rejected {this}", ConsoleColor.DarkRed);
-			}
+			PrioritizedEnqueueWithStatistics(element, currentTime);
+			ColoredConsole.WriteLine($"In Queue {this}", ConsoleColor.DarkYellow);
 		}
 	}
 
 	public override void OutAction(double currentTime)
 	{
+		var element = Queue.Dequeue();
 		var processorI = Array.IndexOf(NextTimes, currentTime);
 		FinishedBy[processorI]++;
-		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
+		Processed.Add(element);
 
-		var element = Queue.Peek();
 		var nextDevice = GetNextDevice(element.Type);
 		if (nextDevice != null)
 		{
@@ -111,16 +110,23 @@ public sealed class ProcessDevice : Device
 		else element.OutOfSystemTime = currentTime;
 
 		NextTimes[processorI] = double.MaxValue;
-		PreviousTime = currentTime;
-
-		if (InQueue > 1)
+		if (InQueue > 0)
 		{
 			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
-			MeanBusyTime += NextTimes[processorI] - currentTime;
-			MeanInQueue += InQueue * (NextTimes[processorI] - currentTime);
-			Processed.Add(Queue.Dequeue());
+			MeanBusyTime += currentTime - PreviousTime;
+			MeanInQueue += InQueue * (currentTime - PreviousTime);
 		}
 		else States[processorI] = DeviceState.Free;
+
+		var extraActiveProcessors = InQueue - NextTimes.Count(t => t != double.MaxValue);
+		for (var i = extraActiveProcessors; i < 0; i++)
+		{
+			var freeIndex = Array.IndexOf(NextTimes, NextTimes.Where(t => t != double.MaxValue).Max());
+			NextTimes[freeIndex] = double.MaxValue;
+			States[freeIndex] = DeviceState.Free;
+		}
+		PreviousTime = currentTime;
+		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
 	}
 
 	public void TryMigrate(double currentTime)
@@ -129,13 +135,12 @@ public sealed class ProcessDevice : Device
 									  .FirstOrDefault(d => d.InQueue == MigrateOptions.Min(d => d.InQueue));
 		if (toDevice == null) return;
 		ColoredConsole.WriteLine($"Migrated to {toDevice.Name} (InQueue: {toDevice.InQueue}) " +
-		                         $"from {Name} (InQueue: {InQueue})", ConsoleColor.DarkBlue);
+								 $"from {Name} (InQueue: {InQueue})", ConsoleColor.DarkBlue);
 		Migrated++;
-		MeanInQueue -= currentTime - PreviousTime;
 		toDevice.InAction(currentTime, Queue.Dequeue());
 	}
 
-	private void PrioritizedEnqueue(Element element) => 
+	private void PrioritizedEnqueue(Element element) =>
 		Queue.Enqueue(element, GetElementPriority(element));
 
 	private void PrioritizedEnqueueWithStatistics(Element element, double currentTime)
@@ -153,6 +158,6 @@ public sealed class ProcessDevice : Device
 		  ? PrioritizedTypes.IndexOf(element.Type) : int.MaxValue;
 
 	public override string ToString() => $"{Name}: Next Times - {SC.StringifyList(NextTimes)}; " +
-	                                     $"Processed - {SC.StringifyTypesCount(Processed)}; " +
-	                                     $"In Queue - {SC.StringifyTypesCount(Queue.UnorderedItems.Select(t => t.Element).ToList())}";
+										 $"Processed - {SC.StringifyTypesCount(Processed)}; " +
+										 $"In Queue - {SC.StringifyTypesCount(Queue.UnorderedItems.Select(t => t.Element).ToList())}";
 }
