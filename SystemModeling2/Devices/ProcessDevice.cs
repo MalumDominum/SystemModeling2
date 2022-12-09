@@ -16,8 +16,6 @@ public sealed class ProcessDevice : Device
 
 	private DeviceState[] States { get; }
 
-	private double PreviousTime { get; set; }
-
 	public List<ProcessDevice>? MigrateOptions { get; set; }
 
 	public List<int>? PrioritizedTypes { get; set; }
@@ -27,6 +25,8 @@ public sealed class ProcessDevice : Device
 	#endregion
 
 	#region Statistics Properties
+
+	private double[] PreviousTimes { get; set; }
 
 	public List<Element> Processed { get; }
 
@@ -44,7 +44,7 @@ public sealed class ProcessDevice : Device
 
 	#region Constructor
 
-	public ProcessDevice(string name, Func<double> distributionFunc, int maxQueue = -1,
+	public ProcessDevice(string name, Func<double> distributionFunc, int maxQueue = int.MaxValue,
 		int processorsCount = 1, List<int>? prioritizedTypes = null, StartedConditions? conditions = null)
 		: base(name, distributionFunc, processorsCount)
 	{
@@ -73,23 +73,23 @@ public sealed class ProcessDevice : Device
 
 	public void InAction(double currentTime, Element element)
 	{
-		if (InQueue >= MaxQueue && MaxQueue != -1)
+		IncomingStatistics(element, currentTime);
+		if (InQueue >= MaxQueue)
 		{
 			Rejected++;
 			ColoredConsole.WriteLine($"Rejected {this}", ConsoleColor.DarkRed);
 			return;
 		}
-
 		var freeIndex = Array.IndexOf(States, DeviceState.Free);
 		if (freeIndex != -1)
 		{
 			States[freeIndex] = DeviceState.Busy;
 			NextTimes[freeIndex] = currentTime + DistributionFunc.Invoke();
-			PrioritizedEnqueueWithStatistics(element, currentTime);
+			PrioritizedEnqueue(element);
 		}
 		else
 		{
-			PrioritizedEnqueueWithStatistics(element, currentTime);
+			PrioritizedEnqueue(element);
 			ColoredConsole.WriteLine($"In Queue {this}", ConsoleColor.DarkYellow);
 		}
 	}
@@ -113,8 +113,8 @@ public sealed class ProcessDevice : Device
 		if (InQueue > 0)
 		{
 			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
-			MeanBusyTime += currentTime - PreviousTime;
-			MeanInQueue += InQueue * (currentTime - PreviousTime);
+			MeanBusyTime += currentTime - PreviousTimes[processorI];
+			MeanInQueue += InQueue * (currentTime - PreviousTimes[processorI]);
 		}
 		else States[processorI] = DeviceState.Free;
 
@@ -125,7 +125,7 @@ public sealed class ProcessDevice : Device
 			NextTimes[freeIndex] = double.MaxValue;
 			States[freeIndex] = DeviceState.Free;
 		}
-		PreviousTime = currentTime;
+		PreviousTimes[processorI] = currentTime;
 		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
 	}
 
@@ -140,17 +140,15 @@ public sealed class ProcessDevice : Device
 		toDevice.InAction(currentTime, Queue.Dequeue());
 	}
 
-	private void PrioritizedEnqueue(Element element) =>
-		Queue.Enqueue(element, GetElementPriority(element));
+	private void PrioritizedEnqueue(Element element) => Queue.Enqueue(element, GetElementPriority(element));
 
-	private void PrioritizedEnqueueWithStatistics(Element element, double currentTime)
+	private void IncomingStatistics(Element element, double currentTime)
 	{
 		var incomingTime = IncomingTimes.ContainsKey(element.Type)
 			? IncomingTimes[element.Type] + currentTime - PreviousTime
 			: currentTime - PreviousTime;
 		IncomingTimes.Remove(element.Type);
 		IncomingTimes.Add(element.Type, incomingTime);
-		PrioritizedEnqueue(element);
 	}
 
 	private int GetElementPriority(Element element) =>

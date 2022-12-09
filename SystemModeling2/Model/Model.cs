@@ -42,10 +42,13 @@ public class Model
 		foreach (var device in createDevices)
 		    Console.WriteLine($"Device {device.Name} Created: {device.Finished} of type {device.CreatingType}");
 	    Console.WriteLine($"Sum of Created: {createdSum}\n");
-		
+
+	    var processedAverage = processDevices.Average(d => d.Finished);
 		foreach (var device in processDevices)
-		    Console.WriteLine($"Device {device.Name} Processed: {SC.StringifyTypesCount(device.Processed)}, Sum: {device.Finished}");
-		Console.WriteLine($"Sum of Processed: {processDevices.Sum(d => d.Finished)}\n");
+		    Console.WriteLine($"Device {device.Name} Processed: {SC.StringifyTypesCount(device.Processed)}, " +
+		                      $"Sum: {device.Finished}; MeanProcessingTime: {device.Finished / modelingTime}");
+		Console.WriteLine($"Mean of Processed: {processedAverage}, " +
+		                  $"MeanProcessingTime: {processedAverage / modelingTime}\n");
 
 		var rejectedSum = processDevices.Sum(d => d.Rejected);
 		if (processDevices.Any(d => d.Rejected > 0))
