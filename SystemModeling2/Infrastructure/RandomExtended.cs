@@ -1,4 +1,6 @@
-﻿namespace SystemModeling2.Infrastructure;
+﻿using Distributions = MathNet.Numerics.Distributions;
+
+namespace SystemModeling2.Infrastructure;
 
 public class RandomExtended
 {
@@ -12,8 +14,8 @@ public class RandomExtended
     public static Func<double> GetUniform(double minValue, double maxValue) =>
         () => Uniform(Math.Min(minValue, maxValue), Math.Max(minValue, maxValue));
 
-    public static Func<double> GetGaussian(double meanValue, double meanDeviationValue) =>
-        () => Gaussian(meanValue, meanDeviationValue);
+    public static Func<double> GetNormal(double meanValue, double meanDeviationValue) =>
+        () => Normal(meanValue, meanDeviationValue);
 
     public static Func<double> GetErlang(double rateLambda, int shapeK) =>
         () => Erlang(rateLambda, shapeK);
@@ -24,20 +26,20 @@ public class RandomExtended
 
     public static double Uniform(double minValue, double timeMax) => minValue + GetRandomNumber() * (timeMax - minValue);
 
-    public static double Gaussian(double meanValue, double meanDeviationValue) =>
-        meanValue + meanDeviationValue *
-        (Math.Sqrt(-2.0 * Math.Log(GetRandomNumber())) *
-         Math.Sin(2.0 * Math.PI * GetRandomNumber()));
+    public static double Normal(double meanValue, double meanDeviationValue) => Distributions.Normal.Sample(meanValue, meanDeviationValue);
 
-    public static double Erlang(double rateLambda, int shapeK)
-    {
-        var accumulator = 0.0;
-        if (shapeK < 1) throw new ArgumentException("Shape (K) value must be positive");
-        for (var i = 1; i < shapeK; i++)
-            accumulator += Math.Log(GetRandomNumber());
+    public static double Erlang(double rateLambda, int shapeK) => Distributions.Erlang.Sample(shapeK, rateLambda);
 
-        return -1 / rateLambda * accumulator;
-    }
+	// public static double Erlang(double rateLambda, int shapeK)
+	//   {
+	//       var accumulator = 0.0;
+	//       if (shapeK < 1) throw new ArgumentException("Shape (k) value must be positive");
+	//       if (rateLambda < 0) throw new ArgumentException("Rate (λ) value must be not negative");
+	//       for (var i = 1; i < shapeK; i++)
+	//           accumulator += Math.Log(GetRandomNumber());
 
-    private static double GetRandomNumber() => 1.0 - Rnd.NextDouble();
+	//       return -1 / rateLambda * accumulator;
+	//   }
+
+	private static double GetRandomNumber() => 1.0 - Rnd.NextDouble();
 }

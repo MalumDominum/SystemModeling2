@@ -10,12 +10,12 @@ public class CreateDevice : Device
 	public static List<Element> AllElements { get; } = new();
 
 	public CreateDevice(string name, Func<double> distributionFunc, int creatingType = 1, int processorsCount = 1,
-		StartedConditions? conditions = null) : base(name, distributionFunc, processorsCount)
+		double? firstCreatingTime = null) : base(name, distributionFunc, processorsCount)
 	{
 		CreatingType = creatingType;
 
-		if (conditions != null)
-			Array.Fill(NextTimes, conditions.FirstInTime ?? distributionFunc.Invoke());
+		if (firstCreatingTime != null)
+			Array.Fill(NextTimes, (double)firstCreatingTime);
 		else for (var i = 0; i < NextTimes.Length; i++)
 			NextTimes[i] = distributionFunc.Invoke();
 	}

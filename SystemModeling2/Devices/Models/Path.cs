@@ -1,17 +1,19 @@
-﻿namespace SystemModeling2.Devices.Models;
+﻿using SystemModeling2.Devices.Enums;
+
+namespace SystemModeling2.Devices.Models;
 
 public class Path
 {
 	public ProcessDevice Destination { get; set; }
 
-	public int Priority { get; set; }
+	public double PriorityOrChance { get; set; }
 
 	public List<int>? PassTypes { get; set; }
 
-	public Path(ProcessDevice destination, int priority = 1, List<int>? passTypes = null)
+	public Path(ProcessDevice destination, double priorityOrChance = 1, List<int>? passTypes = null)
 	{
 		Destination = destination;
-		Priority = priority;
+		PriorityOrChance = priorityOrChance;
 		PassTypes = passTypes;
 	}
 }

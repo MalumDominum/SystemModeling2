@@ -1,4 +1,5 @@
-﻿using SystemModeling2.Devices.Enums;
+﻿using System.Xml.Linq;
+using SystemModeling2.Devices.Enums;
 using SystemModeling2.Devices.Models;
 using SC = SystemModeling2.Infrastructure.ToStringConvertor;
 
@@ -10,7 +11,9 @@ public sealed class ProcessDevice : Device
 
 	public PriorityQueue<Element, int> Queue { get; }
 
-	public int InQueue => Queue.Count;
+	public int BusyProcessors => States.Count(t => t == DeviceState.Busy);
+
+	public int InQueue => Queue.Count - BusyProcessors;
 
 	public int MaxQueue { get; init; }
 
@@ -25,8 +28,17 @@ public sealed class ProcessDevice : Device
 	#endregion
 
 	#region Statistics Properties
+	// * - Means that value must be divided by the modeling time
+	// ** - Means that value must be divided by incoming elements count
 
-	private double[] PreviousTimes { get; set; }
+	private double[] LastBusyCausesTimes { get; }
+
+	private double LastOutTime { get; set; }
+
+	private Dictionary<int, double> LastInTimesByType { get; }
+
+	private double LastTime => Math.Max(LastOutTime,
+		LastInTimesByType.Values.Count > 0 ? LastInTimesByType.Values.Max() : 0);
 
 	public List<Element> Processed { get; }
 
@@ -34,38 +46,40 @@ public sealed class ProcessDevice : Device
 
 	public int Migrated { get; private set; }
 
-	public double MeanBusyTime { get; private set; }
+	public double[] MeanLoads { get; } // *
 
-	public double MeanInQueue { get; private set; } // Must be divided by the modeling time
+	public double MeanInQueue { get; private set; } // *
 
-	public Dictionary<int, double> IncomingTimes { get; } // Must be divided by the modeling time
+	public Dictionary<int, List<double>> IncomingDeltas { get; } // **
 
 	#endregion
 
 	#region Constructor
 
 	public ProcessDevice(string name, Func<double> distributionFunc, int maxQueue = int.MaxValue,
-		int processorsCount = 1, List<int>? prioritizedTypes = null, StartedConditions? conditions = null)
+		int processorsCount = 1, List<int>? prioritizedTypes = null, int[]? startedQueue = null)
 		: base(name, distributionFunc, processorsCount)
 	{
 		MaxQueue = maxQueue;
 		PrioritizedTypes = prioritizedTypes;
+
 		Queue = new PriorityQueue<Element, int>();
 		Processed = new List<Element>();
-		IncomingTimes = new Dictionary<int, double>();
+		IncomingDeltas = new Dictionary<int, List<double>>();
+		LastInTimesByType = new Dictionary<int, double>();
+		LastBusyCausesTimes = new double[processorsCount];
+		MeanLoads = new double[processorsCount];
 
 		Array.Fill(NextTimes, double.MaxValue);
 
 		States = new DeviceState[processorsCount];
 		Array.Fill(States, DeviceState.Free);
 
-		for (var i = 0; i < processorsCount && conditions?.BusyCount != null && i < conditions.BusyCount; i++)
-			States[i] = DeviceState.Busy;
-
-		if (conditions?.InQueue == null) return;
-		foreach (var elementType in conditions.InQueue)
+		if (startedQueue == null) return;
+		foreach (var elementType in startedQueue)
 			PrioritizedEnqueue(new(elementType, 0));
-		for (var i = 0; i < InQueue && i < processorsCount; i++)
+		var inQueueNow = InQueue;
+		for (var i = 0; i < inQueueNow && i < processorsCount; i++)
 			NextTimes[i] = distributionFunc.Invoke();
 	}
 
@@ -73,7 +87,8 @@ public sealed class ProcessDevice : Device
 
 	public void InAction(double currentTime, Element element)
 	{
-		IncomingStatistics(element, currentTime);
+		IncomingStatistics(element.Type, currentTime);
+
 		if (InQueue >= MaxQueue)
 		{
 			Rejected++;
@@ -81,10 +96,12 @@ public sealed class ProcessDevice : Device
 			return;
 		}
 		var freeIndex = Array.IndexOf(States, DeviceState.Free);
+		MeanInQueue += InQueue * (currentTime - LastTime);
 		if (freeIndex != -1)
 		{
 			States[freeIndex] = DeviceState.Busy;
 			NextTimes[freeIndex] = currentTime + DistributionFunc.Invoke();
+			LastBusyCausesTimes[freeIndex] = currentTime;
 			PrioritizedEnqueue(element);
 		}
 		else
@@ -101,6 +118,29 @@ public sealed class ProcessDevice : Device
 		FinishedBy[processorI]++;
 		Processed.Add(element);
 
+		// For statistics example with 1 processor device
+		// Busy:  ----------==========---===
+		// Queue: 00000000000112223210000010
+		if (InQueue > 0)
+			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
+		else
+		{
+			NextTimes[processorI] = double.MaxValue;
+			States[processorI] = DeviceState.Free;
+			MeanLoads[processorI] += currentTime - LastBusyCausesTimes[processorI];
+		}
+
+		MeanInQueue += InQueue * (currentTime - LastTime);
+
+		for (var i = InQueue; i < 0; i++)
+		{
+			var freeIndex = Array.IndexOf(NextTimes, NextTimes.Where(t => t != double.MaxValue).Max());
+			NextTimes[freeIndex] = double.MaxValue;
+			States[freeIndex] = DeviceState.Free;
+		}
+		LastOutTime = currentTime;
+		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
+
 		var nextDevice = GetNextDevice(element.Type);
 		if (nextDevice != null)
 		{
@@ -108,25 +148,6 @@ public sealed class ProcessDevice : Device
 			nextDevice.InAction(currentTime, element);
 		}
 		else element.OutOfSystemTime = currentTime;
-
-		NextTimes[processorI] = double.MaxValue;
-		if (InQueue > 0)
-		{
-			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
-			MeanBusyTime += currentTime - PreviousTimes[processorI];
-			MeanInQueue += InQueue * (currentTime - PreviousTimes[processorI]);
-		}
-		else States[processorI] = DeviceState.Free;
-
-		var extraActiveProcessors = InQueue - NextTimes.Count(t => t != double.MaxValue);
-		for (var i = extraActiveProcessors; i < 0; i++)
-		{
-			var freeIndex = Array.IndexOf(NextTimes, NextTimes.Where(t => t != double.MaxValue).Max());
-			NextTimes[freeIndex] = double.MaxValue;
-			States[freeIndex] = DeviceState.Free;
-		}
-		PreviousTimes[processorI] = currentTime;
-		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
 	}
 
 	public void TryMigrate(double currentTime)
@@ -138,22 +159,28 @@ public sealed class ProcessDevice : Device
 								 $"from {Name} (InQueue: {InQueue})", ConsoleColor.DarkBlue);
 		Migrated++;
 		toDevice.InAction(currentTime, Queue.Dequeue());
+		// It triggers IncomingStatistics. If it not needed pass bool parameters that turns off counting
 	}
 
 	private void PrioritizedEnqueue(Element element) => Queue.Enqueue(element, GetElementPriority(element));
 
-	private void IncomingStatistics(Element element, double currentTime)
-	{
-		var incomingTime = IncomingTimes.ContainsKey(element.Type)
-			? IncomingTimes[element.Type] + currentTime - PreviousTime
-			: currentTime - PreviousTime;
-		IncomingTimes.Remove(element.Type);
-		IncomingTimes.Add(element.Type, incomingTime);
-	}
-
 	private int GetElementPriority(Element element) =>
 		PrioritizedTypes != null && PrioritizedTypes.IndexOf(element.Type) != -1
-		  ? PrioritizedTypes.IndexOf(element.Type) : int.MaxValue;
+			? PrioritizedTypes.IndexOf(element.Type) : int.MaxValue;
+
+	private void IncomingStatistics(int type, double currentTime)
+	{
+		if (IncomingDeltas.TryGetValue(type, out var deltas)
+		    && LastInTimesByType.TryGetValue(type, out var lastTime))
+			deltas.Add(currentTime - lastTime);
+		else if (IncomingDeltas.TryGetValue(type, out var deltasCase2))
+			deltasCase2.Add(currentTime);
+		else IncomingDeltas.Add(type, new List<double> { currentTime });
+
+		if (LastInTimesByType.ContainsKey(type))
+			LastInTimesByType[type] = currentTime;
+		else LastInTimesByType.Add(type, currentTime);
+	}
 
 	public override string ToString() => $"{Name}: Next Times - {SC.StringifyList(NextTimes)}; " +
 										 $"Processed - {SC.StringifyTypesCount(Processed)}; " +

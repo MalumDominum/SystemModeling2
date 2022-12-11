@@ -1,4 +1,5 @@
-﻿using Path = SystemModeling2.Devices.Models.Path;
+﻿using SystemModeling2.Devices.Enums;
+using SystemModeling2.Devices.Models;
 using SC = SystemModeling2.Infrastructure.ToStringConvertor;
 
 namespace SystemModeling2.Devices;
@@ -13,9 +14,9 @@ public abstract class Device
 
 	public Func<double> DistributionFunc { get; init; }
 
-    public List<Path>? Paths { get; set; }
+    public PathGroup PathGroup { get; set; }
 
-	public int[] FinishedBy { get; set; }
+    public int[] FinishedBy { get; set; }
 
 	public int Finished => FinishedBy.Sum();
 
@@ -37,11 +38,34 @@ public abstract class Device
 
 	private protected ProcessDevice? GetNextDevice(int elementType)
 	{
-		if (Paths == null) return null;
+		if (PathGroup == null) return null;
 
-		var pathsCanBePassed = Paths.Where(p => p.PassTypes == null || (p.PassTypes != null && p.PassTypes.Contains(elementType))).ToList();
+		var pathsCanBePassed = PathGroup.Paths.Where(p => p.PassTypes == null || (p.PassTypes != null && p.PassTypes.Contains(elementType))).ToList();
 
-		var pathsWithMinQueue = pathsCanBePassed.Where(p => p.Destination.InQueue == pathsCanBePassed.Min(path => path.Destination.InQueue));
-		return pathsWithMinQueue.MinBy(p => p.Priority)?.Destination;
+		switch (PathGroup.SelectionPath)
+		{
+			case SelectionPath.Priority:
+				var pathsWithFreeQueue = pathsCanBePassed.Where(p => p.Destination.InQueue < p.Destination.MaxQueue).ToList();
+				return pathsWithFreeQueue.Count > 0
+					? pathsWithFreeQueue.MinBy(p => p.PriorityOrChance)?.Destination
+					: pathsCanBePassed.MinBy(p => p.PriorityOrChance)?.Destination;
+			case SelectionPath.Random:
+				if (pathsCanBePassed.Sum(p => p.PriorityOrChance) > 1)
+					throw new ArgumentException("Chances can't be bigger that 1");
+
+				var randomValue = new Random().NextDouble(); // TODO Make more quick
+				ProcessDevice? result = null;
+				foreach (var t in pathsCanBePassed)
+				{
+					randomValue -= t.PriorityOrChance;
+					if (randomValue > 0) continue;
+
+					result = t.Destination;
+					break;
+				}
+				return result;
+			default:
+				throw new NullReferenceException("Selection path not choosen for the group");
+		}
 	}
 }
