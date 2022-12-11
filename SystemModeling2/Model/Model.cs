@@ -81,8 +81,8 @@ public class Model
 		Console.WriteLine($"Average of MeanInQueue: {Round(processDevices.Select(d => d.MeanInQueue / modelingTime).Average())}\n");
 
 		foreach (var device in processDevices)
-			Console.WriteLine($"Device {device.Name} MeanIncomingTime: {SC.StringifyDictOfLists(device.IncomingDeltas)}");
-		Console.WriteLine($"Average of MeanIncomingTime: {Round(processDevices.Average(d => d.IncomingDeltas.Sum(x => x.Value.Average())))}\n");
+			Console.WriteLine($"Device {device.Name} MeanIncomingInterval: {SC.StringifyDictOfLists(device.IncomingDeltas)}");
+		Console.WriteLine($"Average of MeanIncomingInterval: {Round(processDevices.Average(d => d.IncomingDeltas.Sum(x => x.Value.Average())))}\n");
 
 		foreach (var type in CreateDevice.AllElements.Select(e => e.Type).Distinct().Order())
 			Console.WriteLine($"Element type {type}: MeanLiveTime - " +

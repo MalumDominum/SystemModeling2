@@ -1,6 +1,5 @@
 ﻿using SystemModeling2.Devices.Enums;
 using SystemModeling2.Devices.Models;
-using SC = SystemModeling2.Infrastructure.ToStringConvertor;
 
 namespace SystemModeling2.Devices;
 
@@ -53,7 +52,7 @@ public abstract class Device
 				if (pathsCanBePassed.Sum(p => p.PriorityOrChance) > 1)
 					throw new ArgumentException("Chances can't be bigger that 1");
 
-				var randomValue = new Random().NextDouble(); // TODO Make more quick
+				var randomValue = new Random().NextDouble();
 				ProcessDevice? result = null;
 				foreach (var t in pathsCanBePassed)
 				{

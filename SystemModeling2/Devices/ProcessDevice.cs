@@ -1,5 +1,4 @@
-﻿using System.Xml.Linq;
-using SystemModeling2.Devices.Enums;
+﻿using SystemModeling2.Devices.Enums;
 using SystemModeling2.Devices.Models;
 using SC = SystemModeling2.Infrastructure.ToStringConvertor;
 
@@ -80,18 +79,17 @@ public sealed class ProcessDevice : Device
 	{
 		IncomingStatistics(element.Type, currentTime);
 
-		if (InQueue >= MaxQueue)
-		{
-			Rejected++;
-			ColoredConsole.WriteLine($"Rejected {this}", ConsoleColor.DarkRed);
-			return;
-		}
 		var freeIndex = Array.IndexOf(States, DeviceState.Free);
 		if (freeIndex != -1)
 		{
 			States[freeIndex] = DeviceState.Busy;
 			NextTimes[freeIndex] = currentTime + DistributionFunc.Invoke();
 			PrioritizedEnqueue(element);
+		}
+		else if (InQueue >= MaxQueue)
+		{
+			Rejected++;
+			ColoredConsole.WriteLine($"Rejected {this}", ConsoleColor.DarkRed);
 		}
 		else
 		{
@@ -107,19 +105,12 @@ public sealed class ProcessDevice : Device
 		FinishedBy[processorI]++;
 		Processed.Add(element);
 
-		if (InQueue > 0)
+		if (InQueue >= 0)
 			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
 		else
 		{
 			NextTimes[processorI] = double.MaxValue;
 			States[processorI] = DeviceState.Free;
-		}
-
-		for (var i = InQueue; i < 0; i++)
-		{
-			var freeIndex = Array.IndexOf(NextTimes, NextTimes.Where(t => t != double.MaxValue).Max());
-			NextTimes[freeIndex] = double.MaxValue;
-			States[freeIndex] = DeviceState.Free;
 		}
 		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
 
@@ -171,5 +162,5 @@ public sealed class ProcessDevice : Device
 
 	public override string ToString() => $"{Name}: Next Times - {SC.StringifyList(NextTimes)}; " +
 										 $"Processed - {SC.StringifyTypesCount(Processed)}; " +
-										 $"In Queue - {SC.StringifyTypesCount(Queue.UnorderedItems.Select(t => t.Element).ToList())}";
+										 $"Queue - {SC.StringifyTypesCount(Queue.UnorderedItems.Select(t => t.Element).ToList())}";
 }
