@@ -31,14 +31,7 @@ public sealed class ProcessDevice : Device
 	// * - Means that value must be divided by the modeling time
 	// ** - Means that value must be divided by incoming elements count
 
-	private double[] LastBusyCausesTimes { get; }
-
-	private double LastOutTime { get; set; }
-
 	private Dictionary<int, double> LastInTimesByType { get; }
-
-	private double LastTime => Math.Max(LastOutTime,
-		LastInTimesByType.Values.Count > 0 ? LastInTimesByType.Values.Max() : 0);
 
 	public List<Element> Processed { get; }
 
@@ -46,7 +39,7 @@ public sealed class ProcessDevice : Device
 
 	public int Migrated { get; private set; }
 
-	public double[] MeanLoads { get; } // *
+	public double BusyTime { get; private set; } // *
 
 	public double MeanInQueue { get; private set; } // *
 
@@ -67,8 +60,6 @@ public sealed class ProcessDevice : Device
 		Processed = new List<Element>();
 		IncomingDeltas = new Dictionary<int, List<double>>();
 		LastInTimesByType = new Dictionary<int, double>();
-		LastBusyCausesTimes = new double[processorsCount];
-		MeanLoads = new double[processorsCount];
 
 		Array.Fill(NextTimes, double.MaxValue);
 
@@ -96,12 +87,10 @@ public sealed class ProcessDevice : Device
 			return;
 		}
 		var freeIndex = Array.IndexOf(States, DeviceState.Free);
-		MeanInQueue += InQueue * (currentTime - LastTime);
 		if (freeIndex != -1)
 		{
 			States[freeIndex] = DeviceState.Busy;
 			NextTimes[freeIndex] = currentTime + DistributionFunc.Invoke();
-			LastBusyCausesTimes[freeIndex] = currentTime;
 			PrioritizedEnqueue(element);
 		}
 		else
@@ -118,19 +107,13 @@ public sealed class ProcessDevice : Device
 		FinishedBy[processorI]++;
 		Processed.Add(element);
 
-		// For statistics example with 1 processor device
-		// Busy:  ----------==========---===
-		// Queue: 00000000000112223210000010
 		if (InQueue > 0)
 			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
 		else
 		{
 			NextTimes[processorI] = double.MaxValue;
 			States[processorI] = DeviceState.Free;
-			MeanLoads[processorI] += currentTime - LastBusyCausesTimes[processorI];
 		}
-
-		MeanInQueue += InQueue * (currentTime - LastTime);
 
 		for (var i = InQueue; i < 0; i++)
 		{
@@ -138,7 +121,6 @@ public sealed class ProcessDevice : Device
 			NextTimes[freeIndex] = double.MaxValue;
 			States[freeIndex] = DeviceState.Free;
 		}
-		LastOutTime = currentTime;
 		ColoredConsole.WriteLine($"Processed {this}", ConsoleColor.DarkGreen);
 
 		var nextDevice = GetNextDevice(element.Type);
@@ -159,7 +141,12 @@ public sealed class ProcessDevice : Device
 								 $"from {Name} (InQueue: {InQueue})", ConsoleColor.DarkBlue);
 		Migrated++;
 		toDevice.InAction(currentTime, Queue.Dequeue());
-		// It triggers IncomingStatistics. If it not needed pass bool parameters that turns off counting
+	}
+
+	public void DoStatistics(double delta)
+	{
+		BusyTime += States.Average(s => (double)s) * delta;
+		MeanInQueue += InQueue * delta;
 	}
 
 	private void PrioritizedEnqueue(Element element) => Queue.Enqueue(element, GetElementPriority(element));

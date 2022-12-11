@@ -12,12 +12,18 @@ public class Model
     public void Simulate(double modelingTime)
 	{
 		var currentTime = 0.0;
+		var createDevices = GetSpecificDevices<CreateDevice>(Devices);
+		var processDevices = GetSpecificDevices<ProcessDevice>(Devices);
 
 		while (currentTime < modelingTime)
 		{
 			var nextTime = Devices.Min(d => d.NextTimes.Min());
 			if (nextTime > modelingTime) break;
 			var nextDevices = Devices.Where(d => d.NextTimes.Contains(nextTime));
+
+			foreach (var device in processDevices)
+				device.DoStatistics(Math.Min(nextTime, modelingTime) - currentTime);
+
 			currentTime = nextTime;
 
 			foreach (var device in nextDevices)
@@ -27,27 +33,25 @@ public class Model
 				if (device is ProcessDevice processDevice)
 					processDevice.TryMigrate(currentTime);
 		}
-		ShowStatistics(Devices, modelingTime);
+		ShowStatistics(createDevices, processDevices, modelingTime);
 		CreateDevice.AllElements.Clear();
 	}
 
-    public static void ShowStatistics(List<Device> devices, double modelingTime)
+    private static void ShowStatistics(List<CreateDevice> createDevices,
+	    List<ProcessDevice> processDevices, double modelingTime)
     {
-	    var createDevices = GetSpecificDevices<CreateDevice>(devices);
-	    var processDevices = GetSpecificDevices<ProcessDevice>(devices);
-		
 		Console.WriteLine("\n");
 		var createdSum = createDevices.Sum(d => d.Finished);
 		foreach (var device in createDevices)
 		    Console.WriteLine($"Device {device.Name} Created: {device.Finished} of type {device.CreatingType}");
 	    Console.WriteLine($"Sum of Created: {createdSum}\n");
 
-	    var processedAverage = processDevices.Average(d => d.Finished);
 		foreach (var device in processDevices)
 		    Console.WriteLine($"Device {device.Name} Processed: {SC.StringifyTypesCount(device.Processed)}, " +
-		                      $"Sum: {device.Finished}; MeanProcessingTime: {modelingTime / device.Finished}");
-		Console.WriteLine($"Mean of Processed: {processedAverage}, " +
-		                  $"Average of MeanProcessingTime: {modelingTime / processedAverage}\n");
+		                      $"Sum: {device.Finished}; BusyTime: {device.BusyTime}; " +
+		                      $"MeanProcessingTime: {device.Finished / device.BusyTime}");
+		Console.WriteLine($"Avg of Processed: {processDevices.Average(d => d.Finished)}, " +
+		                  $"Avg of MeanProcessingTime: {processDevices.Average(d => d.Finished / d.BusyTime)}\n");
 
 		var rejectedSum = processDevices.Sum(d => d.Rejected);
 		if (processDevices.Any(d => d.Rejected > 0))
@@ -67,8 +71,8 @@ public class Model
 		else ColoredConsole.WriteLine("Elements doesn't migrated between devices\n", ConsoleColor.DarkGray);
 
 		foreach (var device in processDevices)
-			Console.WriteLine($"Device {device.Name} MeanLoads: {SC.StringifyList(device.MeanLoads.Select(l => l / modelingTime))}");
-		Console.WriteLine($"Average of MeanLoads: {Math.Round(processDevices.Select(d => d.MeanLoads.Average() / modelingTime).Average(), 6)}\n");
+			Console.WriteLine($"Device {device.Name} MeanLoad: {device.BusyTime / modelingTime}");
+		Console.WriteLine($"Average of MeanLoad: {Math.Round(processDevices.Select(d => d.BusyTime / modelingTime).Average(), 6)}\n");
 
 		foreach (var device in processDevices)
 			Console.WriteLine($"Device {device.Name} MeanInQueue: {Math.Round(device.MeanInQueue / modelingTime, 6)}");
@@ -80,8 +84,10 @@ public class Model
 
 		foreach (var type in CreateDevice.AllElements.Select(e => e.Type).Distinct().Order())
 			Console.WriteLine($"Element type {type}: MeanLiveTime - " +
-			                  $"{Math.Round(CreateDevice.AllElements.Where(e => e.Type == type).Average(e => e.LiveTime) ?? 0, 6)}");
-		Console.WriteLine($"Average of MeanLiveTime: {Math.Round(CreateDevice.AllElements.Select(e => e.LiveTime).Average() ?? 0, 6)}\n");
+			                  $"{Math.Round(CreateDevice.AllElements.Where(e => e.Type == type).Average(e => e.LiveTime)
+			                                ?? double.PositiveInfinity, 6)}");
+		Console.WriteLine($"Average of MeanLiveTime: {Math.Round(CreateDevice.AllElements.Select(e => e.LiveTime).Average()
+		                                                         ?? double.PositiveInfinity, 6)}\n");
 	}
 
     private static List<T> GetSpecificDevices<T>(List<Device> devices) where T : Device

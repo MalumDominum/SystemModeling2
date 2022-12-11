@@ -1,9 +1,13 @@
-﻿using SystemModeling2.Devices;
+﻿using System.Text;
+using SystemModeling2.Devices;
 using SystemModeling2.Devices.Enums;
 using SystemModeling2.Devices.Models;
 using SystemModeling2.Model;
 using Path = SystemModeling2.Devices.Models.Path;
 using RE = SystemModeling2.Infrastructure.RandomExtended;
+
+Console.InputEncoding = Encoding.UTF8;
+Console.OutputEncoding = Encoding.UTF8;
 
 Model model;
 
@@ -79,10 +83,12 @@ Model model;
 //var d1 = new CreateDevice("Create 1", () => 10);
 //var d2 = new ProcessDevice("Process 1", () => 1, 5);
 //var d3 = new ProcessDevice("Process 2", () => 2);
+
 //d1.PathGroup = new() { Paths = { new(d2) } };
 //d2.PathGroup = new() { Paths = { new(d3) } };
 //d3.PathGroup = new() { Paths = { new(d2) } };
-//var model = new Model { Devices = { d1, d2, d3 } };
+
+//model = new Model { Devices = { d1, d2, d3 } };
 
 #endregion
 
