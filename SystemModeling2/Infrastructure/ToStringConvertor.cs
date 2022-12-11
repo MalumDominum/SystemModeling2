@@ -5,15 +5,15 @@ namespace SystemModeling2.Infrastructure;
 public static class ToStringConvertor
 {
 	public static string StringifyList(IEnumerable<double> list) =>
-		list.Select(x => x != double.MaxValue ? $"{Math.Round(x, 5)}" : "MAX")
+		list.Select(x => x != double.MaxValue ? $"{Round(x)}" : "MAX")
 			.Aggregate((a, c) => $"{a}, {c}");
 
 	public static string StringifyDictOfLists(Dictionary<int, List<double>> dictionary) =>
 		dictionary.Any()
 			? dictionary.OrderBy(d => d.Key)
-				  .Select(d => $"{d.Key} = {Math.Round(d.Value.Average(), 6)}")
+				  .Select(d => $"{d.Key} = {Round(d.Value.Average())}")
 				  .Aggregate((a, c) => $"{a}, {c}") +
-			  (dictionary.Keys.Count > 1 ? ", Sum: " + Math.Round(dictionary.Values.Select(v => v.Average()).Sum(), 6) : "")
+			  (dictionary.Keys.Count > 1 ? ", Sum: " + Round(dictionary.Values.Select(v => v.Average()).Sum()) : "")
 			: "";
 
 	public static string StringifyTypesCount(IReadOnlyCollection<Element> elements)
@@ -33,8 +33,10 @@ public static class ToStringConvertor
 	public static string StringifyDict(IDictionary<int, double> dictionary, double? divisor = null) =>
 		dictionary.Any()
 			? dictionary.OrderBy(d => d.Key)
-			      .Select(d => $"{d.Key} = {Math.Round(d.Value / (divisor ?? 1), 6)}")
+			      .Select(d => $"{d.Key} = {Round(d.Value / (divisor ?? 1))}")
 				  .Aggregate((a, c) => $"{a}, {c}") + 
-				  ", Sum: " + Math.Round(dictionary.Values.Select(v => v / (divisor ?? 1)).Sum(), 6)
+				  ", Sum: " + Round(dictionary.Values.Select(v => v / (divisor ?? 1)).Sum())
 			: "";
+
+	private static double Round(double value) => Math.Round(value, 5);
 }
