@@ -48,6 +48,9 @@ public abstract class Device
 				return pathsWithFreeQueue.Count > 0
 					? pathsWithFreeQueue.MinBy(p => p.PriorityOrChance)?.Destination
 					: pathsCanBePassed.MinBy(p => p.PriorityOrChance)?.Destination;
+			case SelectionPath.UniformPriority:
+				var pathsWithMinQueue = pathsCanBePassed.Where(p => p.Destination.InQueue == pathsCanBePassed.Min(path => path.Destination.InQueue));
+				return pathsWithMinQueue.MinBy(p => p.PriorityOrChance)?.Destination;
 			case SelectionPath.Random:
 				if (pathsCanBePassed.Sum(p => p.PriorityOrChance) > 1)
 					throw new ArgumentException("Chances can't be bigger that 1");

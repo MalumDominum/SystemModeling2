@@ -3,6 +3,6 @@
 public enum SelectionPath
 {
 	Priority = 0,
-	Random = 1,
-	UniformPriority = 2
+	UniformPriority = 1,
+	Random = 2
 }

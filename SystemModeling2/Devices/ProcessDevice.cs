@@ -18,11 +18,9 @@ public sealed class ProcessDevice : Device
 
 	private DeviceState[] States { get; }
 
-	public List<ProcessDevice>? MigrateOptions { get; set; }
+	public List<MigrateOption>? MigrateOptions { get; set; }
 
 	public List<int>? PrioritizedTypes { get; set; }
-
-	private const int MigrateDiff = 2;
 
 	#endregion
 
@@ -125,8 +123,10 @@ public sealed class ProcessDevice : Device
 
 	public void TryMigrate(double currentTime)
 	{
-		var toDevice = MigrateOptions?.Where(d => InQueue - d.InQueue >= MigrateDiff)
-									  .FirstOrDefault(d => d.InQueue == MigrateOptions.Min(d => d.InQueue));
+		var minQueue = MigrateOptions?.Min(option => option.Destination.InQueue);
+		var toDevice = MigrateOptions?.Where(mo => InQueue - mo.Destination.InQueue >= mo.Difference)
+									  .FirstOrDefault(mo => mo.Destination.InQueue == minQueue)
+									       ?.Destination;
 		if (toDevice == null) return;
 		ColoredConsole.WriteLine($"Migrated to {toDevice.Name} (InQueue: {toDevice.InQueue}) " +
 								 $"from {Name} (InQueue: {InQueue})", ConsoleColor.DarkBlue);

@@ -85,31 +85,46 @@ double modelingTime = 300;
 
 #region CP-1 Task 6: Paths that Loops Demo
 
-var d1 = new CreateDevice("Create 1", () => 0.5);
-var d2 = new ProcessDevice("Process 1", () => 1, 5);
-var d3 = new ProcessDevice("Process 2", () => 2);
+//var d1 = new CreateDevice("Create 1", () => 0.5);
+//var d2 = new ProcessDevice("Process 1", () => 1, 5);
+//var d3 = new ProcessDevice("Process 2", () => 2);
 
-d1.PathGroup = new() { Paths = { new(d2) } };
-d2.PathGroup = new() { Paths = { new(d3) } };
-d3.PathGroup = new() { Paths = { new(d2) } };
+//d1.PathGroup = new() { Paths = { new(d2) } };
+//d2.PathGroup = new() { Paths = { new(d3) } };
+//d3.PathGroup = new() { Paths = { new(d2) } };
 
-model = new Model { Devices = { d1, d2, d3 } };
-modelingTime = 100;
+//model = new Model { Devices = { d1, d2, d3 } };
+//modelingTime = 100;
+
+#endregion
+
+#region CP-2 Task 1: Paths Priority Demo
+
+//var c1 = new CreateDevice("Create 1", () => 0.2);
+//var p1 = new ProcessDevice("Process 1", () => 1, 3);
+//var p2 = new ProcessDevice("Process 2", () => 1);
+//var p3 = new ProcessDevice("Process 3", () => 1, 6);
+
+//c1.PathGroup = new() { Paths = { new(p1, 3), new(p2, 2), new(p3) } };
+
+//model = new Model { Devices = { c1, p1, p2, p3 } };
+//modelingTime = 50;
 
 #endregion
 
 #region CP-2 Task 2: Banks
 
-//var dc1 = new CreateDevice("Create 1", RE.GetExponential(0.3), firstCreatingTime: 0.1);
-//var dp1 = new ProcessDevice("Process 1", RE.GetNormal(1, 0.3), 3, startedQueue: new[] { 1, 1, 1 });
-//var dp2 = new ProcessDevice("Process 2", RE.GetNormal(1, 0.3), 3, startedQueue: new[] { 1, 1, 1 });
+var dc1 = new CreateDevice("Create 1", RE.GetExponential(0.3), firstCreatingTime: 0.1);
+var dp1 = new ProcessDevice("Process 1", RE.GetNormal(1, 0.3), 3, startedQueue: new[] { 1, 1, 1 });
+var dp2 = new ProcessDevice("Process 2", RE.GetNormal(1, 0.3), 3, startedQueue: new[] { 1, 1, 1 });
 
-//dc1.PathGroup = new() { Paths = { new(dp1), new(dp2, 2) } };
+dc1.PathGroup = new() { Paths = { new(dp1), new(dp2, 2) } };
 
-//dp1.MigrateOptions = new List<ProcessDevice> { dp2 };
-//dp2.MigrateOptions = new List<ProcessDevice> { dp1 };
+dp1.MigrateOptions = new List<MigrateOption> { new(dp2, 2) };
+dp2.MigrateOptions = new List<MigrateOption> { new(dp1, 2) };
 
-//model = new Model { Devices = { dc1, dp1, dp2 } };
+model = new Model { Devices = { dc1, dp1, dp2 } };
+//modelingTime = 300;
 
 #endregion
 
@@ -136,6 +151,7 @@ modelingTime = 100;
 
 
 //model = new Model { Devices = { dc1, dc2, dc3, doctors, ward, register, laboratory } };
+modelingTime = 10000;
 
 #endregion
 
