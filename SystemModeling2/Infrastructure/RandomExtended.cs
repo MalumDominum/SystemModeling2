@@ -6,7 +6,7 @@ public class RandomExtended
 {
     private static readonly Random Rnd = new();
 
-    #region CurriedFunctions
+    #region Curried Functions
 
     public static Func<double> GetExponential(double meanValue) =>
         () => Exponential(meanValue);
