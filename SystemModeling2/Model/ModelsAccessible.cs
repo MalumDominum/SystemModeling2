@@ -9,40 +9,35 @@ public static class ModelsAccessible
 {
     #region JustOneDevice
 
-    public static Model JustOneDevice(Func<double> createInterval, Func<double> processInterval)
+    public static Model JustOneDevice(Func<RE?, double> createInterval, Func<RE?, double> processInterval, RE? rnd = null)
     {
-        var c1 = new CreateDevice("Create 1", () => 0.25);
-        var p1 = new ProcessDevice("Process 1", () => 1);
+        var c1 = new CreateDevice("Create 1", createInterval);
+        var p1 = new ProcessDevice("Process 1", processInterval);
         c1.PathGroup = new() { Paths = { new(p1) } };
 
         return new Model(new List<CreateDevice> { c1 },
-                         new List<ProcessDevice> { p1 });
+                         new List<ProcessDevice> { p1 }, rnd);
     }
-
-    public static Func<Model> GetJustOneDevice(params Func<double>[] dFuncs) =>
-        () => JustOneDevice(dFuncs[0], dFuncs[1]);
 
     #endregion
 
     #region ThreeSerialProcesses
 
-    public static Model ThreeSerialProcesses()
+    public static Model ThreeSerialProcesses(Func<RE?, double> createInterval, Func<RE?, double> process1Interval,
+                                             Func<RE?, double> process2Interval, Func<RE?, double> process3Interval, RE? rnd = null)
     {
-        var d1 = new CreateDevice("Create 1", () => 1);
-        var d2 = new ProcessDevice("Process 1", () => 1);
-        var d3 = new ProcessDevice("Process 2", () => 1);
-        var d4 = new ProcessDevice("Process 3", () => 1);
+        var d1 = new CreateDevice("Create 1", createInterval, rnd);
+        var d2 = new ProcessDevice("Process 1", process1Interval, rnd);
+        var d3 = new ProcessDevice("Process 2", process2Interval, rnd);
+        var d4 = new ProcessDevice("Process 3", process3Interval, rnd);
 
         d1.PathGroup = new() { Paths = { new(d2) } };
         d2.PathGroup = new() { Paths = { new(d3) } };
         d3.PathGroup = new() { Paths = { new(d4) } };
 
         return new Model(new List<CreateDevice> { d1 },
-                         new List<ProcessDevice> { d2, d3, d4 });
+                         new List<ProcessDevice> { d2, d3, d4 }, rnd);
     }
-
-    public static Func<Model> GetThreeSerialProcesses(params Func<double>[] dFuncs) =>
-        () => ThreeSerialProcesses();
 
     #endregion
 
@@ -50,8 +45,8 @@ public static class ModelsAccessible
 
     public static Model ManyProcessorsDemo()
     {
-        var create = new CreateDevice("Create 1", () => 0.2);
-        var process = new ProcessDevice("Process 1", () => 1, maxQueue: 2, processorsCount: 3);
+        var create = new CreateDevice("Create 1", _ => 0.2);
+        var process = new ProcessDevice("Process 1", _ => 1, maxQueue: 2, processorsCount: 3);
 
         create.PathGroup = new() { Paths = { new(process) } };
 
@@ -59,20 +54,17 @@ public static class ModelsAccessible
                          new List<ProcessDevice> { process });
     }
 
-    public static Func<Model> GetManyProcessorsDemo(params Func<double>[] dFuncs) =>
-        () => ManyProcessorsDemo();
-
     #endregion
 
     #region OutPathsDemo
 
     public static Model OutPathsDemo()
     {
-        var d1 = new CreateDevice("Create 1", () => 0.2);
-        var d11 = new ProcessDevice("Process 1 1", () => 1);
-        var d12 = new ProcessDevice("Process 1 2", () => 1);
-        var d21 = new ProcessDevice("Process 2 1", () => 1);
-        var d22 = new ProcessDevice("Process 2 2", () => 1);
+        var d1 = new CreateDevice("Create 1", _ => 0.2);
+        var d11 = new ProcessDevice("Process 1 1", _ => 1);
+        var d12 = new ProcessDevice("Process 1 2", _ => 1);
+        var d21 = new ProcessDevice("Process 2 1", _ => 1);
+        var d22 = new ProcessDevice("Process 2 2", _ => 1);
 
         d1.PathGroup = new(SelectionPath.Random) { Paths = { new(d11, 0.02), new(d21, 0.98) } };
         d11.PathGroup = new() { Paths = { new(d12) } };
@@ -82,18 +74,15 @@ public static class ModelsAccessible
                          new List<ProcessDevice> { d11, d12, d21, d22 });
     }
 
-    public static Func<Model> GetOutPathsDemo(params Func<double>[] dFuncs) =>
-        () => OutPathsDemo();
-
     #endregion
 
     #region PathsThatLoopsDemo
 
     public static Model PathsThatLoopsDemo()
     {
-        var d1 = new CreateDevice("Create 1", () => 0.5);
-        var d2 = new ProcessDevice("Process 1", () => 1, 5);
-        var d3 = new ProcessDevice("Process 2", () => 2);
+        var d1 = new CreateDevice("Create 1", _ => 0.5);
+        var d2 = new ProcessDevice("Process 1", _ => 1, maxQueue: 5);
+        var d3 = new ProcessDevice("Process 2", _ => 2);
 
         d1.PathGroup = new() { Paths = { new(d2) } };
         d2.PathGroup = new() { Paths = { new(d3) } };
@@ -103,19 +92,16 @@ public static class ModelsAccessible
                          new List<ProcessDevice> { d2, d3 });
     }
 
-    public static Func<Model> GetPathsThatLoopsDemo(params Func<double>[] dFuncs) =>
-        () => PathsThatLoopsDemo();
-
     #endregion
 
     #region PathsPriorityDemo
 
     public static Model PathsPriorityDemo()
     {
-        var c1 = new CreateDevice("Create 1", () => 0.2);
-        var p1 = new ProcessDevice("Process 1", () => 1, 3);
-        var p2 = new ProcessDevice("Process 2", () => 1);
-        var p3 = new ProcessDevice("Process 3", () => 1, 6);
+        var c1 = new CreateDevice("Create 1", _ => 0.2);
+        var p1 = new ProcessDevice("Process 1", _ => 1, maxQueue: 3);
+        var p2 = new ProcessDevice("Process 2", _ => 1);
+        var p3 = new ProcessDevice("Process 3", _ => 1, maxQueue: 6);
 
         c1.PathGroup = new() { Paths = { new(p1, 3), new(p2, 2), new(p3) } };
 
@@ -123,18 +109,16 @@ public static class ModelsAccessible
                          new List<ProcessDevice> { p1, p2, p3 });
     }
 
-    public static Func<Model> GetPathsPriorityDemo(params Func<double>[] dFuncs) =>
-        () => PathsPriorityDemo();
-
     #endregion
 
     #region Banks
 
     public static Model Banks()
     {
-        var dc1 = new CreateDevice("Create 1", RE.GetExponential(0.5), firstCreatingTime: 0.1);
-        var dp1 = new ProcessDevice("Process 1", RE.GetNormal(1, 0.3), 3, startedQueue: new[] { 1, 1, 1 });
-        var dp2 = new ProcessDevice("Process 2", RE.GetNormal(1, 0.3), 3, startedQueue: new[] { 1, 1, 1 });
+        var random = new RE();
+        var dc1 = new CreateDevice("Create 1", RE.GetExponential(0.5), random, firstCreatingTime: 0.1);
+        var dp1 = new ProcessDevice("Process 1", RE.GetNormal(1, 0.3), random, 3, startedQueue: new[] { 1, 1, 1 });
+        var dp2 = new ProcessDevice("Process 2", RE.GetNormal(1, 0.3), random, 3, startedQueue: new[] { 1, 1, 1 });
 
         dc1.PathGroup = new(SelectionPath.UniformPriority) { Paths = { new(dp1), new(dp2, 2) } };
 
@@ -144,24 +128,22 @@ public static class ModelsAccessible
         return new Model(new List<CreateDevice> { dc1 },
                          new List<ProcessDevice> { dp1, dp2 });
     }
-
-    public static Func<Model> GetBanks(params Func<double>[] dFuncs) =>
-        () => Banks();
-
+    
     #endregion
 
     #region Hospital
 
     public static Model Hospital()
     {
-        var dc1 = new CreateDevice("Create 1", () => RE.Exponential(15) * 0.5 + RE.Exponential(15));         // RE.Exponential(15) * 0.5 + RE.Exponential(15) 
-        var dc2 = new CreateDevice("Create 2", () => RE.Exponential(15) * 0.1 + RE.Exponential(40), 2);      // RE.Exponential(15) * 0.1 + RE.Exponential(40)
-        var dc3 = new CreateDevice("Create 3", () => RE.Exponential(15) * 0.4 + RE.Exponential(30), 3);      // RE.Exponential(15) * 0.4 + RE.Exponential(30)
+        var random = new RE();
+        var dc1 = new CreateDevice("Create 1", rnd => rnd!.Exponential(15) * 0.5 + rnd.Exponential(15), random);         // rnd.Exponential(15) * 0.5 + rnd.Exponential(15) 
+        var dc2 = new CreateDevice("Create 2", rnd => rnd!.Exponential(15) * 0.1 + rnd.Exponential(40), random, 2);      // rnd.Exponential(15) * 0.1 + rnd.Exponential(40)
+        var dc3 = new CreateDevice("Create 3", rnd => rnd!.Exponential(15) * 0.4 + rnd.Exponential(30), random, 3);      // rnd.Exponential(15) * 0.4 + rnd.Exponential(30)
 
-        var doctors = new ProcessDevice("Doctors", RE.GetExponential(15), int.MaxValue, 2, new List<int> { 1 });
-        var register = new ProcessDevice("Register", () => RE.Uniform(2, 5) + RE.Erlang(4.5, 3));
-        var laboratory = new ProcessDevice("Laboratory", () => RE.Erlang(4, 2) + RE.Uniform(2, 5));
-        var ward = new ProcessDevice("Ward", RE.GetUniform(3, 8), processorsCount: 3);
+        var doctors = new ProcessDevice("Doctors", RE.GetExponential(15), random, int.MaxValue, 2, new List<int> { 1 });
+        var register = new ProcessDevice("Register", rnd => rnd!.Uniform(2, 5) + rnd.Erlang(4.5, 3));
+        var laboratory = new ProcessDevice("Laboratory", rnd => rnd!.Erlang(4, 2) + rnd.Uniform(2, 5));
+        var ward = new ProcessDevice("Ward", RE.GetUniform(3, 8), random, processorsCount: 3);
 
         var toDoctors = new PathGroup { Paths = { new(doctors) } };
         dc1.PathGroup = toDoctors;
@@ -177,9 +159,6 @@ public static class ModelsAccessible
         return new Model(new List<CreateDevice> { dc1, dc2, dc3 },
                          new List<ProcessDevice> { doctors, ward, register, laboratory });
     }
-
-    public static Func<Model> GetHospital(params Func<double>[] dFuncs) =>
-        () => Hospital();
-
+    
     #endregion
 }

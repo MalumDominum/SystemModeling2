@@ -1,6 +1,7 @@
 ﻿using SystemModeling2.Devices.Enums;
 using SystemModeling2.Devices.Models;
 using SC = SystemModeling2.Infrastructure.ToStringConvertor;
+using RE = SystemModeling2.Infrastructure.RandomExtended;
 
 namespace SystemModeling2.Devices;
 
@@ -22,7 +23,9 @@ public sealed class ProcessDevice : Device
 
 	public List<int>? PrioritizedTypes { get; set; }
 
-	#endregion
+	public int[]? StartedQueue { get; }
+
+    #endregion
 
 	#region Statistics Properties
 	// * - Means that value must be divided by the modeling time
@@ -46,14 +49,15 @@ public sealed class ProcessDevice : Device
 
 	#region Constructor
 
-	public ProcessDevice(string name, Func<double> distributionFunc, int maxQueue = int.MaxValue,
+	public ProcessDevice(string name, Func<RE?, double> distributionFunc, RE? rnd = null, int maxQueue = int.MaxValue,
 		int processorsCount = 1, List<int>? prioritizedTypes = null, int[]? startedQueue = null)
-		: base(name, distributionFunc, processorsCount)
+		: base(name, distributionFunc, rnd, processorsCount)
 	{
 		MaxQueue = maxQueue;
 		PrioritizedTypes = prioritizedTypes;
+        StartedQueue = startedQueue;
 
-		Queue = new PriorityQueue<Element, int>();
+        Queue = new PriorityQueue<Element, int>();
 		Processed = new List<Element>();
 		IncomingDeltas = new Dictionary<int, List<double>>();
 		LastInTimesByType = new Dictionary<int, double>();
@@ -68,7 +72,7 @@ public sealed class ProcessDevice : Device
 			PrioritizedEnqueue(new(elementType, 0));
 		var inQueueNow = InQueue;
 		for (var i = 0; i < inQueueNow && i < processorsCount; i++)
-			NextTimes[i] = distributionFunc.Invoke();
+			NextTimes[i] = DistributionInvoke();
 	}
 
 	#endregion
@@ -81,7 +85,7 @@ public sealed class ProcessDevice : Device
 		if (freeIndex != -1)
 		{
 			States[freeIndex] = DeviceState.Busy;
-			NextTimes[freeIndex] = currentTime + DistributionFunc.Invoke();
+			NextTimes[freeIndex] = currentTime + DistributionInvoke();
 			PrioritizedEnqueue(element);
 		}
 		else if (InQueue >= MaxQueue)
@@ -104,7 +108,7 @@ public sealed class ProcessDevice : Device
 		Processed.Add(element);
 
 		if (InQueue >= 0)
-			NextTimes[processorI] = currentTime + DistributionFunc.Invoke();
+			NextTimes[processorI] = currentTime + DistributionInvoke();
 		else
 		{
 			NextTimes[processorI] = double.MaxValue;
@@ -138,9 +142,9 @@ public sealed class ProcessDevice : Device
 	{
 		BusyTime += States.Average(s => (double)s) * delta;
 		MeanInQueue += InQueue * delta;
-	}
+    }
 
-	private void PrioritizedEnqueue(Element element) => Queue.Enqueue(element, GetElementPriority(element));
+    private void PrioritizedEnqueue(Element element) => Queue.Enqueue(element, GetElementPriority(element));
 
 	private int GetElementPriority(Element element) =>
 		PrioritizedTypes != null && PrioritizedTypes.IndexOf(element.Type) != -1
@@ -163,4 +167,24 @@ public sealed class ProcessDevice : Device
 	public override string ToString() => $"{Name}: Next Times - {SC.StringifyList(NextTimes)}; " +
 										 $"Processed - {SC.StringifyTypesCount(Processed)}; " +
 										 $"Queue - {SC.StringifyTypesCount(Queue.UnorderedItems.Select(t => t.Element).ToList())}";
+
+	public override void Reset()
+	{
+		base.Reset();
+		
+        Queue.Clear();
+        Processed.Clear();
+        IncomingDeltas.Clear();
+        LastInTimesByType.Clear();
+
+        Array.Fill(NextTimes, double.MaxValue);
+        Array.Fill(States, DeviceState.Free);
+
+        if (StartedQueue == null) return;
+        foreach (var elementType in StartedQueue)
+            PrioritizedEnqueue(new(elementType, 0));
+        var inQueueNow = InQueue;
+        for (var i = 0; i < inQueueNow && i < ProcessorsCount; i++)
+            NextTimes[i] = DistributionInvoke();
+    }
 }

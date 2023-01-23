@@ -1,6 +1,4 @@
-﻿using SystemModeling2.Devices.Enums;
-
-namespace SystemModeling2.Devices.Models;
+﻿namespace SystemModeling2.Devices.Models;
 
 public class Path
 {

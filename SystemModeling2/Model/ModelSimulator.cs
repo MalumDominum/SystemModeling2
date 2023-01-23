@@ -5,33 +5,56 @@ namespace SystemModeling2.Model;
 
 public static class ModelSimulator
 {
-    public static void Simulate(Model model, double modelingTime)
+    private static double? RunSimulationStep(Model model, double currentTime, double modelingTime)
+    {
+        var nextTime = model.Devices.Min(d => d.NextTimes.Min());
+        if (nextTime > currentTime) return null;
+        var nextDevices = model.Devices.Where(d => d.NextTimes.Contains(nextTime));
+
+        foreach (var device in model.ProcessDevices)
+            device.DoStatistics(Math.Min(nextTime, modelingTime) - currentTime);
+
+        currentTime = nextTime;
+
+        foreach (var device in nextDevices)
+            device.OutAction(currentTime);
+
+        foreach (var device in model.Devices)
+            if (device is ProcessDevice processDevice)
+                processDevice.TryMigrate(currentTime);
+
+		return nextTime;
+    }
+
+    public static void RunSimulate(Model model, double modelingTime)
 	{
 		var currentTime = 0.0;
 
-		while (currentTime < modelingTime)
-		{
-			var nextTime = model.Devices.Min(d => d.NextTimes.Min());
-			if (nextTime > modelingTime) break;
-			var nextDevices = model.Devices.Where(d => d.NextTimes.Contains(nextTime));
+        while (currentTime < modelingTime)
+            currentTime = RunSimulationStep(model, currentTime, modelingTime) ?? double.MaxValue;
 
-			foreach (var device in model.ProcessDevices)
-				device.DoStatistics(Math.Min(nextTime, modelingTime) - currentTime);
-
-			currentTime = nextTime;
-
-			foreach (var device in nextDevices)
-                device.OutAction(currentTime);
-
-			foreach (var device in model.Devices)
-				if (device is ProcessDevice processDevice)
-					processDevice.TryMigrate(currentTime);
-		}
 		ShowStatistics(model.CreateDevices, model.ProcessDevices, modelingTime);
 		CreateDevice.AllElements.Clear();
-	}
+    }
 	
-	private static double Round(double value, int digits = 5) => Math.Round(value, digits);
+    public static void RunExperiment(List<Model> models, double modelingTime, double numberOfSimulations)
+    {
+		var rnd = new Random();
+        var seedSequence = new List<int>();
+        for (int i = 0; i < numberOfSimulations; i++)
+            seedSequence.Add(rnd.Next());
+
+        for (int modelI = 0; modelI < models.Count; modelI++)
+        {
+            for (int currentSimulation = 0; currentSimulation < numberOfSimulations; currentSimulation++)
+            {
+                RunSimulate(models[modelI], modelingTime);
+				models[modelI].Clear(seedSequence[currentSimulation]);
+            }
+        }
+    }
+
+    private static double Round(double value, int digits = 5) => Math.Round(value, digits);
 
     private static void ShowStatistics(List<CreateDevice> createDevices,
 	    List<ProcessDevice> processDevices, double modelingTime)

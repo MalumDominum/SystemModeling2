@@ -1,5 +1,6 @@
 ﻿using SystemModeling2.Devices.Enums;
 using SystemModeling2.Devices.Models;
+using RE = SystemModeling2.Infrastructure.RandomExtended;
 
 namespace SystemModeling2.Devices;
 
@@ -11,9 +12,13 @@ public abstract class Device
 
     public double[] NextTimes { get; }
 
-	public Func<double> DistributionFunc { get; init; }
+	public RE? Rnd { get; }
+
+	public Func<RE?, double> DistributionFunc { get; init; }
 
     public PathGroup PathGroup { get; set; }
+
+    public int ProcessorsCount => NextTimes.Length;
 
     public int[] FinishedBy { get; set; }
 
@@ -23,16 +28,19 @@ public abstract class Device
 
 	#region Constructor
 
-	protected Device(string name, Func<double> distributionFunc, int processorsCount = 1)
+	protected Device(string name, Func<RE?, double> distributionFunc, RE? rnd = null, int processorsCount = 1)
     {
         Name = name;
+        Rnd = rnd;
         DistributionFunc = distributionFunc;
 		NextTimes = new double[processorsCount];
 		FinishedBy = new int[processorsCount];
     }
 
 	#endregion
-	
+
+    public double DistributionInvoke() => DistributionFunc(Rnd);
+
 	public abstract void OutAction(double currentTime);
 
 	private protected ProcessDevice? GetNextDevice(int elementType)
@@ -69,5 +77,7 @@ public abstract class Device
 			default:
 				throw new NullReferenceException("Selection path not choosen for the group");
 		}
-	}
+    }
+
+    public virtual void Reset() => Array.Fill(FinishedBy, 0);
 }
