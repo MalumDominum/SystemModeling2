@@ -9,21 +9,21 @@ public static class ModelsAccessible
 {
     #region JustOneDevice
 
-    public static Model JustOneDevice(Func<RE?, double> createInterval, Func<RE?, double> processInterval, RE? rnd = null)
+    public static ModelStructure JustOneDevice(Func<RE?, double> createInterval, Func<RE?, double> processInterval, RE? rnd = null)
     {
         var c1 = new CreateDevice("Create 1", createInterval);
         var p1 = new ProcessDevice("Process 1", processInterval);
         c1.PathGroup = new() { Paths = { new(p1) } };
 
-        return new Model(new List<CreateDevice> { c1 },
-                         new List<ProcessDevice> { p1 }, rnd);
+        return new ModelStructure(new List<CreateDevice> { c1 },
+                                  new List<ProcessDevice> { p1 }, rnd);
     }
 
     #endregion
 
     #region ThreeSerialProcesses
 
-    public static Model ThreeSerialProcesses(Func<RE?, double> createInterval, Func<RE?, double> process1Interval,
+    public static ModelStructure ThreeSerialProcesses(Func<RE?, double> createInterval, Func<RE?, double> process1Interval,
                                              Func<RE?, double> process2Interval, Func<RE?, double> process3Interval, RE? rnd = null)
     {
         var d1 = new CreateDevice("Create 1", createInterval, rnd);
@@ -35,30 +35,30 @@ public static class ModelsAccessible
         d2.PathGroup = new() { Paths = { new(d3) } };
         d3.PathGroup = new() { Paths = { new(d4) } };
 
-        return new Model(new List<CreateDevice> { d1 },
-                         new List<ProcessDevice> { d2, d3, d4 }, rnd);
+        return new ModelStructure(new List<CreateDevice> { d1 },
+                                  new List<ProcessDevice> { d2, d3, d4 }, rnd);
     }
 
     #endregion
 
     #region ManyProcessorsDemo
 
-    public static Model ManyProcessorsDemo()
+    public static ModelStructure ManyProcessorsDemo()
     {
         var create = new CreateDevice("Create 1", _ => 0.2);
         var process = new ProcessDevice("Process 1", _ => 1, maxQueue: 2, processorsCount: 3);
 
         create.PathGroup = new() { Paths = { new(process) } };
 
-        return new Model(new List<CreateDevice> { create },
-                         new List<ProcessDevice> { process });
+        return new ModelStructure(new List<CreateDevice> { create },
+                                  new List<ProcessDevice> { process });
     }
 
     #endregion
 
     #region OutPathsDemo
 
-    public static Model OutPathsDemo()
+    public static ModelStructure OutPathsDemo()
     {
         var d1 = new CreateDevice("Create 1", _ => 0.2);
         var d11 = new ProcessDevice("Process 1 1", _ => 1);
@@ -70,7 +70,7 @@ public static class ModelsAccessible
         d11.PathGroup = new() { Paths = { new(d12) } };
         d21.PathGroup = new() { Paths = { new(d22) } };
 
-        return new Model(new List<CreateDevice> { d1 },
+        return new ModelStructure(new List<CreateDevice> { d1 },
                          new List<ProcessDevice> { d11, d12, d21, d22 });
     }
 
@@ -78,7 +78,7 @@ public static class ModelsAccessible
 
     #region PathsThatLoopsDemo
 
-    public static Model PathsThatLoopsDemo()
+    public static ModelStructure PathsThatLoopsDemo()
     {
         var d1 = new CreateDevice("Create 1", _ => 0.5);
         var d2 = new ProcessDevice("Process 1", _ => 1, maxQueue: 5);
@@ -88,7 +88,7 @@ public static class ModelsAccessible
         d2.PathGroup = new() { Paths = { new(d3) } };
         d3.PathGroup = new() { Paths = { new(d2) } };
 
-        return new Model(new List<CreateDevice> { d1 },
+        return new ModelStructure(new List<CreateDevice> { d1 },
                          new List<ProcessDevice> { d2, d3 });
     }
 
@@ -96,7 +96,7 @@ public static class ModelsAccessible
 
     #region PathsPriorityDemo
 
-    public static Model PathsPriorityDemo()
+    public static ModelStructure PathsPriorityDemo()
     {
         var c1 = new CreateDevice("Create 1", _ => 0.2);
         var p1 = new ProcessDevice("Process 1", _ => 1, maxQueue: 3);
@@ -105,7 +105,7 @@ public static class ModelsAccessible
 
         c1.PathGroup = new() { Paths = { new(p1, 3), new(p2, 2), new(p3) } };
 
-        return new Model(new List<CreateDevice> { c1 },
+        return new ModelStructure(new List<CreateDevice> { c1 },
                          new List<ProcessDevice> { p1, p2, p3 });
     }
 
@@ -113,7 +113,7 @@ public static class ModelsAccessible
 
     #region Banks
 
-    public static Model Banks()
+    public static ModelStructure Banks()
     {
         var random = new RE();
         var dc1 = new CreateDevice("Create 1", RE.GetExponential(0.5), random, firstCreatingTime: 0.1);
@@ -125,7 +125,7 @@ public static class ModelsAccessible
         dp1.MigrateOptions = new List<MigrateOption> { new(dp2, 2) };
         dp2.MigrateOptions = new List<MigrateOption> { new(dp1, 2) };
 
-        return new Model(new List<CreateDevice> { dc1 },
+        return new ModelStructure(new List<CreateDevice> { dc1 },
                          new List<ProcessDevice> { dp1, dp2 });
     }
     
@@ -133,7 +133,7 @@ public static class ModelsAccessible
 
     #region Hospital
 
-    public static Model Hospital()
+    public static ModelStructure Hospital()
     {
         var random = new RE();
         var dc1 = new CreateDevice("Create 1", rnd => rnd!.Exponential(15) * 0.5 + rnd.Exponential(15), random);         // rnd.Exponential(15) * 0.5 + rnd.Exponential(15) 
@@ -156,7 +156,7 @@ public static class ModelsAccessible
         laboratory.PathGroup = new() { Paths = { new(ward, passTypes: new List<int> { 2 }) } }; // Don't pass 3 type
 
 
-        return new Model(new List<CreateDevice> { dc1, dc2, dc3 },
+        return new ModelStructure(new List<CreateDevice> { dc1, dc2, dc3 },
                          new List<ProcessDevice> { doctors, ward, register, laboratory });
     }
     

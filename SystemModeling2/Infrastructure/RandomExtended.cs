@@ -4,17 +4,17 @@ namespace SystemModeling2.Infrastructure;
 
 public class RandomExtended
 {
-    private readonly int? _seed;
+    private readonly int? _savedSeed;
 
     private Random Rnd { get; set; }
 
     public RandomExtended(int? seed = null)
     {
-        _seed = seed;
+        _savedSeed = seed;
         Rnd = seed.HasValue ? new Random(seed.Value) : new Random();
     }
 
-    public void ResetSeed() => Rnd = _seed.HasValue ? new Random(_seed.Value) : new Random();
+    public void ResetToSavedSeed() => Rnd = _savedSeed.HasValue ? new Random(_savedSeed.Value) : new Random();
 
     public void SetSeed(int seed) => Rnd = new Random(seed);
 

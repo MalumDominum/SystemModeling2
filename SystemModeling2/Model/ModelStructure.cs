@@ -3,8 +3,10 @@ using SystemModeling2.Infrastructure;
 
 namespace SystemModeling2.Model;
 
-public class Model
+public class ModelStructure
 {
+    public string? Name { get; set; }
+
     public List<CreateDevice> CreateDevices { get; }
 
     public List<ProcessDevice> ProcessDevices { get; }
@@ -15,17 +17,22 @@ public class Model
 
     public List<Func<RandomExtended?, double>> DistributionFuncs => Devices.Select(d => d.DistributionFunc).ToList();
     
-    public Model(List<CreateDevice> createDevices, List<ProcessDevice> processDevices, RandomExtended? rnd = null)
+    public ModelStructure(List<CreateDevice> createDevices, List<ProcessDevice> processDevices, RandomExtended? rnd = null)
     {
         Rnd = rnd ?? new RandomExtended();
         CreateDevices = createDevices;
         ProcessDevices = processDevices;
-        Devices = new (createDevices.Union<Device>(processDevices));
+        Devices = new(createDevices.Union<Device>(processDevices));
     }
 
-    public void Clear(int newSeed)
+    public void Clear(bool resetToSavedSeed, int? newSeed = null)
     {
-        Rnd.SetSeed(newSeed);
+        var rnd = new Random();
+        if (resetToSavedSeed)
+            Rnd.ResetToSavedSeed();
+        else Rnd.SetSeed(newSeed ?? rnd.Next());
+
+        CreateDevice.AllElements.Clear();
         foreach (var device in Devices) device.Reset();
     }
 }

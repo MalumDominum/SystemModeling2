@@ -1,5 +1,6 @@
 ﻿using SystemModeling2.Devices.Enums;
 using SystemModeling2.Devices.Models;
+using SystemModeling2.Infrastructure;
 using SC = SystemModeling2.Infrastructure.ToStringConvertor;
 using RE = SystemModeling2.Infrastructure.RandomExtended;
 
@@ -79,7 +80,8 @@ public sealed class ProcessDevice : Device
 
 	public void InAction(double currentTime, Element element)
 	{
-		IncomingStatistics(element.Type, currentTime);
+        if (!StatisticsCollectionDisabled)
+            IncomingStatistics(element.Type, currentTime);
 
 		var freeIndex = Array.IndexOf(States, DeviceState.Free);
 		if (freeIndex != -1)
@@ -89,8 +91,9 @@ public sealed class ProcessDevice : Device
 			PrioritizedEnqueue(element);
 		}
 		else if (InQueue >= MaxQueue)
-		{
-			Rejected++;
+        {
+            if (!StatisticsCollectionDisabled)
+                Rejected++;
 			ColoredConsole.WriteLine($"Rejected {this}", ConsoleColor.DarkRed);
 		}
 		else
@@ -104,8 +107,11 @@ public sealed class ProcessDevice : Device
 	{
 		var element = Queue.Dequeue();
 		var processorI = Array.IndexOf(NextTimes, currentTime);
-		FinishedBy[processorI]++;
-		Processed.Add(element);
+        if (!StatisticsCollectionDisabled)
+        {
+            FinishedBy[processorI]++;
+            Processed.Add(element);
+        }
 
 		if (InQueue >= 0)
 			NextTimes[processorI] = currentTime + DistributionInvoke();
@@ -134,7 +140,9 @@ public sealed class ProcessDevice : Device
 		if (toDevice == null) return;
 		ColoredConsole.WriteLine($"Migrated to {toDevice.Name} (InQueue: {toDevice.InQueue}) " +
 								 $"from {Name} (InQueue: {InQueue})", ConsoleColor.DarkBlue);
-		Migrated++;
+
+        if (!StatisticsCollectionDisabled)
+            Migrated++;
 		toDevice.InAction(currentTime, Queue.Dequeue());
 	}
 
@@ -176,6 +184,10 @@ public sealed class ProcessDevice : Device
         Processed.Clear();
         IncomingDeltas.Clear();
         LastInTimesByType.Clear();
+        Rejected = 0;
+        Migrated = 0;
+        BusyTime = 0;
+        MeanInQueue = 0;
 
         Array.Fill(NextTimes, double.MaxValue);
         Array.Fill(States, DeviceState.Free);

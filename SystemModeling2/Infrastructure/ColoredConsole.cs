@@ -1,4 +1,4 @@
-﻿namespace SystemModeling2;
+﻿namespace SystemModeling2.Infrastructure;
 
 public static class ColoredConsole
 {

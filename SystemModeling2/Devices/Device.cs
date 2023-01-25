@@ -10,6 +10,8 @@ public abstract class Device
 
 	public string Name { get; set; }
 
+	public bool StatisticsCollectionDisabled { get; set; }
+
     public double[] NextTimes { get; }
 
 	public RE? Rnd { get; }
