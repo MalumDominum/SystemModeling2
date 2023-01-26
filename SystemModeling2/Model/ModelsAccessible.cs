@@ -9,10 +9,11 @@ public static class ModelsAccessible
 {
     #region JustOneDevice
 
-    public static ModelStructure JustOneDevice(Func<RE?, double> createInterval, Func<RE?, double> processInterval, RE? rnd = null)
+    public static ModelStructure JustOneDevice(Func<RE?, double> createInterval,
+        Func<RE?, double> processInterval, RE? rnd = null)
     {
-        var c1 = new CreateDevice("Create 1", createInterval);
-        var p1 = new ProcessDevice("Process 1", processInterval);
+        var c1 = new CreateDevice("Create 1", createInterval, rnd);
+        var p1 = new ProcessDevice("Process 1", processInterval, rnd);
         c1.PathGroup = new() { Paths = { new(p1) } };
 
         return new ModelStructure(new List<CreateDevice> { c1 },
@@ -24,7 +25,7 @@ public static class ModelsAccessible
     #region ThreeSerialProcesses
 
     public static ModelStructure ThreeSerialProcesses(Func<RE?, double> createInterval, Func<RE?, double> process1Interval,
-                                             Func<RE?, double> process2Interval, Func<RE?, double> process3Interval, RE? rnd = null)
+        Func<RE?, double> process2Interval, Func<RE?, double> process3Interval, RE? rnd = null)
     {
         var d1 = new CreateDevice("Create 1", createInterval, rnd);
         var d2 = new ProcessDevice("Process 1", process1Interval, rnd);
@@ -37,6 +38,31 @@ public static class ModelsAccessible
 
         return new ModelStructure(new List<CreateDevice> { d1 },
                                   new List<ProcessDevice> { d2, d3, d4 }, rnd);
+    }
+
+    #endregion
+
+    #region RobotSystem
+
+    public static ModelStructure RobotSystem(Func<RE?, double> createInterval,
+        List<(Func<RE?, double>?, Func<RE?, double>?)> robotWorkbenchPairs, int workbenchCapacity, RE? rnd)
+    {
+        var create = new CreateDevice("Create Details", createInterval, rnd);
+        var sequenceOfProcessDevices = new List<ProcessDevice>();
+        for (var i = 0; i < robotWorkbenchPairs.Count; i++)
+        {
+            if (robotWorkbenchPairs[i].Item1 != null)
+                sequenceOfProcessDevices.Add(new ProcessDevice($"Robot {i}", robotWorkbenchPairs[i].Item1, rnd));
+            if (robotWorkbenchPairs[i].Item2 != null)
+                sequenceOfProcessDevices.Add(new ProcessDevice($"Workbench {i}", robotWorkbenchPairs[i].Item2, rnd,
+                                                           processorsCount: workbenchCapacity));
+        }
+
+        create.PathGroup = new() { Paths = { new(sequenceOfProcessDevices[0]) } };
+        for (int i = 0; i < sequenceOfProcessDevices.Count - 1; i++)
+            sequenceOfProcessDevices[i].PathGroup = new() { Paths = { new(sequenceOfProcessDevices[i + 1]) } };
+
+        return new ModelStructure(new List<CreateDevice> { create }, sequenceOfProcessDevices, rnd);
     }
 
     #endregion

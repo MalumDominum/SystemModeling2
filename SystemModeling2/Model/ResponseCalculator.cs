@@ -12,7 +12,7 @@ public static class ResponseCalculator
 
         var createdSum = model.CreateDevices.Sum(d => d.Finished);
         var rejectedSum = model.ProcessDevices.Sum(d => d.Rejected);
-        var meanLoadValues = model.ProcessDevices.Select(d => d.BusyTime / modelingTime);
+        var meanLoadValues = model.ProcessDevices.Select(d => d.BusyTime / modelingTime).ToList();
         AddResponseParameters(result, new Dictionary<string, double>
         {
             { "Sum of Created", createdSum },
@@ -27,9 +27,15 @@ public static class ResponseCalculator
             { "Min of MeanLoad", meanLoadValues.Min() },
             { "Avg of MeanLoad", meanLoadValues.Average() },
             { "Max of MeanLoad", meanLoadValues.Max() },
+            { "Min of MeanInQueue", model.ProcessDevices.Select(d => d.MeanInQueue / modelingTime).Min() },
             { "Avg of MeanInQueue", model.ProcessDevices.Select(d => d.MeanInQueue / modelingTime).Average() },
+            { "Max of MeanInQueue", model.ProcessDevices.Select(d => d.MeanInQueue / modelingTime).Max() },
+            { "Min of MeanIncomingInterval", model.ProcessDevices.Average(d => d.IncomingDeltas.Sum(x => x.Value.Min())) },
             { "Avg of MeanIncomingInterval", model.ProcessDevices.Average(d => d.IncomingDeltas.Sum(x => x.Value.Average())) },
-            { "Avg of ElementsLiveTime", CreateDevice.AllElements.Select(e => e.LiveTime).Average() ?? double.PositiveInfinity }
+            { "Max of MeanIncomingInterval", model.ProcessDevices.Average(d => d.IncomingDeltas.Sum(x => x.Value.Max())) },
+            { "Min of ElementsLiveTime", CreateDevice.AllElements.Select(e => e.LiveTime).Min() ?? double.PositiveInfinity },
+            { "Avg of ElementsLiveTime", CreateDevice.AllElements.Select(e => e.LiveTime).Average() ?? double.PositiveInfinity },
+            { "Max of ElementsLiveTime", CreateDevice.AllElements.Select(e => e.LiveTime).Max() ?? double.PositiveInfinity }
         }, responseParameters);
 
         return result;
@@ -38,7 +44,7 @@ public static class ResponseCalculator
     public static void LogParameters(SimulationResult result)
     {
         Console.WriteLine((!IsNullOrEmpty(result.Model.Name) ? $"\nModel {result.Model.Name}" : "\nModel") +
-            (result.SimulationNumber.HasValue ? $" with Simulation number {result.SimulationNumber} parameters:\n\t" : "parameters:\n\t") +
+            (result.SimulationNumber.HasValue ? $" with Simulation number {result.SimulationNumber} parameters:\n\t" : " parameters:\n\t") +
             result.ModelResponseParameters.Select(p => $"{p.Key}: {p.Value}").Aggregate((a, c) => $"{a}\n\t{c}"));
     }
 

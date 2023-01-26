@@ -1,6 +1,7 @@
 ﻿using SystemModeling2.Model;
 using MM = SystemModeling2.Infrastructure.ModelingMath;
 using static System.Double;
+using static System.String;
 
 namespace SystemModeling2.TacticalExperimenter;
 
@@ -20,8 +21,8 @@ public static class TacticalExperimenter
 
         model.Rnd.ResetToSavedSeed();
 
-        // TODO REMOVE THAT SHIT
-        return new Random().Next((int)breakTime / 1000, (int)breakTime / 100) + new Random().NextDouble();
+        Console.WriteLine($"Warm-up results of {model.Name}:\n{Join("", results.Select(r => r + "\n"))}");
+        
         return results.Where(r => r < breakTime).Max();
     }
 
@@ -29,7 +30,7 @@ public static class TacticalExperimenter
         int wantedCheckCount, double minMaxStep, double breakTime)
     {
         const int takeLastCount = 5;
-        const double normalizeFactor = 10;
+        const double normalizeFactor = 30;
         var currentTime = 0.0;
         var lastMinMaxCheck = 0.0;
         var approvedCheckCount = 0;
@@ -64,12 +65,11 @@ public static class TacticalExperimenter
             if (isCheckApproved) approvedCheckCount++;
             else approvedCheckCount = 0;
 
-        } while (approvedCheckCount < wantedCheckCount || currentTime < breakTime);
+        } while (approvedCheckCount < wantedCheckCount && currentTime < breakTime);
 
         model.Clear(false);
-        if (approvedCheckCount > wantedCheckCount) return currentTime;
+        if (approvedCheckCount >= wantedCheckCount) return currentTime;
 
-        Console.WriteLine("Transition time doesn't exists in that model");
         return null;
     }
 
@@ -87,7 +87,7 @@ public static class TacticalExperimenter
             simulationResults.Add(ResponseCalculator.CalculateParameters(model,
                 modelingTime, responseAccuracyDict.Keys.ToList()));
 
-            ResponseCalculator.LogParameters(simulationResults[simulationNumber]);
+            //ResponseCalculator.LogParameters(simulationResults[simulationNumber]);
 
             if (simulationNumber == 0)
                 foreach (var result in simulationResults)
@@ -99,13 +99,24 @@ public static class TacticalExperimenter
                 SetDictionaryValue(currentAccuracies, key,
                     LaplasFunctionValue * MM.CalculateStandardDeviation(simulationResults, key) / Math.Sqrt(simulationNumber));
 
+            if (simulationNumber % 10 == 0)
+            {
+                Console.WriteLine($"Accuracies of run {simulationNumber}:");
+                foreach (var accuracy in currentAccuracies)
+                    Console.WriteLine($"\t{accuracy.Key}: {accuracy.Value}");
+                Console.WriteLine();
+            }
+
             if (simulationNumber > 3)
                 correspondingFlag = !responseAccuracyDict.Any(p => IsNaN(currentAccuracies[p.Key]) ||
                                                                    currentAccuracies[p.Key] > p.Value);
-
             simulationNumber++;
             model.Clear(false);
         } while (!correspondingFlag);
+        
+        Console.WriteLine($"Wanted accuracy founded at run {simulationNumber}:");
+        foreach (var accuracy in currentAccuracies)
+            Console.WriteLine($"\t{accuracy.Key}: {accuracy.Value}");
 
         model.Rnd.ResetToSavedSeed();
         return simulationNumber;
